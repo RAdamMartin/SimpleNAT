@@ -81,7 +81,7 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("*** -> Received packet of length %d \n",len);
 
   /* Ethernet Protocol */
-  uint8_t* ether_packet = malloc(sizeof(packet));
+  uint8_t* ether_packet = malloc(len);
   memcpy(ether_packet,packet,len);
   /* fill in the struct with raw data in ether_packet */
   sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*)ether_packet;
