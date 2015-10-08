@@ -104,18 +104,21 @@ void sr_handlepacket(struct sr_instance* sr,
       int i = 0;
       struct sr_if* interfaces = sr->if_list;
       printf("ARP! \\o/! \n");
-      /*sr_processed_packet =  sr_handleARPpacket();*/
-      /*copy the new packet content*/
-      struct sr_ethernet_hdr* outgoing = (struct sr_ethernet_hdr*)ether_packet;
-      memcpy(outgoing+14,sr_processed_packet,len-14);
-      /*swapping outgoing and incoming addr*/
-      uint8_t destination[6];
-      memcpy(destination,outgoing->ether_shost,6);
-      memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
-      memcpy(outgoing->ether_dhost, &destination,6);
-      for(i=0;i<3;i++){
-        if(interfaces[i].ip == *(uint32_t*)destination){
-          sr_send_packet(sr,(uint8_t*)outgoing,len,interfaces[i].name);
+      sr_processed_packet =  sr_handleARPpacket(sr, packet, len);
+
+      if (sr_processed_packet){
+        /*copy the new packet content*/
+        struct sr_ethernet_hdr* outgoing = (struct sr_ethernet_hdr*)ether_packet;
+        memcpy(outgoing+14,sr_processed_packet,len-14);
+        /*swapping outgoing and incoming addr*/
+        uint8_t destination[6];
+        memcpy(destination,outgoing->ether_shost,6);
+        memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
+        memcpy(outgoing->ether_dhost, &destination,6);
+        for(i=0;i<3;i++){
+          if(interfaces[i].ip == *(uint32_t*)destination){
+            sr_send_packet(sr,(uint8_t*)outgoing,len,interfaces[i].name);
+          }
         }
       }
     }else if(package_type==ip){
@@ -184,3 +187,87 @@ uint8_t* sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int 
   free(ip_packet);
   return NULL;
 }
+
+uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int len) {
+    assert(packet);
+    uint8_t* arp_packet = malloc(len);
+    memcpy(arp_packet,packet,len);
+    struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *) arp_packet;
+
+    enum sr_arp_opcode request = arp_op_request;
+    enum sr_arp_opcode reply = arp_op_reply;
+
+    struct sr_arpentry *entry;
+    entry = sr_arpcache_lookup(&sr->cache, arpHeader->ar_tip);
+
+    struct sr_arpreq *req;
+
+    /* handle an arp request. send a reply to the sender */
+    if (arpHeader->ar_op == request) {
+        /* found an ip->mac mapping */
+        if (entry) {
+          arpHeader->ar_op = reply;
+          arpHeader->ar_sip = arpHeader->ar_tip;
+          arpHeader->ar_tip = entry->ip;
+          free(entry);
+          return arp_packet;
+        }
+        else {
+          char *iface;
+          iface = sr_get_iface(sr, arpHeader->ar_tip);
+
+          req = sr_arpcache_queuereq(&sr->cache, arpHeader->ar_sip, packet, len, iface);
+          handle_arpreq(sr, req);
+          return NULL;
+        }
+    }
+    /* handle an arp reply */
+    else {
+      if (entry) {
+        req = sr_arpcache_insert(&sr->cache, entry->mac, entry->ip);
+        struct sr_packet *req_packet;
+
+        /* found an ip->mac mapping.  send all pakets waiting on the request */
+        if (req) {
+          for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
+            assert(req_packet->buf);
+            uint8_t* ip_packet = malloc(len);
+            memcpy(ip_packet,req_packet->buf, req_packet->len);
+            struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) ip_packet;  
+
+            uint32_t src = ipHeader->ip_src;
+            ipHeader->ip_src = ipHeader->ip_dst;
+            ipHeader->ip_dst = src;
+            ipHeader->ip_ttl = 20;
+            ipHeader->ip_sum = cksum(ip_packet,20);
+
+            /*copy the new packet content*/
+            struct sr_ethernet_hdr* outgoing = (struct sr_ethernet_hdr*)packet;
+            memcpy(outgoing+14,ip_packet,len-14);
+
+            int i = 0;
+            struct sr_if* interfaces = sr->if_list;
+      
+            /*swapping outgoing and incoming addr*/
+            uint8_t destination[6];
+            memcpy(destination,outgoing->ether_shost,6);
+            memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
+            memcpy(outgoing->ether_dhost, &destination,6);
+
+            for(i=0;i<3;i++){
+              if(interfaces[i].ip == *(uint32_t*)destination){
+                sr_send_packet(sr,(uint8_t*)outgoing,len,interfaces[i].name);
+              }
+            }         
+          }
+        }
+      }
+      return NULL;
+    }
+}
+
+
+
+
+
+
