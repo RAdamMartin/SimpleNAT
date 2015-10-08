@@ -223,3 +223,34 @@ unsigned char sr_in_if_list(struct sr_instance* sr, uint32_t addr)
     return 0;
 
 } /* -- sr_in_if_list -- */
+
+
+/*--------------------------------------------------------------------- 
+ * Method: sr_get_iface(..)
+ * Scope: Global
+ *
+ * checks if ip addr is in interface
+ *
+ *---------------------------------------------------------------------*/
+
+char *sr_get_iface(struct sr_instance* sr, uint32_t addr)
+{
+    struct sr_if* if_walker = 0;
+
+    if(sr->if_list == 0)
+    {
+        return NULL;
+    }
+
+    if_walker = sr->if_list;
+    while(if_walker->next)
+    {
+        if (if_walker->ip == addr){
+            return if_walker->name;
+        }
+        if_walker = if_walker->next; 
+    }
+
+    return NULL;
+
+} /* -- sr_get_iface -- */

@@ -65,6 +65,7 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <assert.h>
 #include <time.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -74,6 +75,7 @@
 #include "sr_router.h"
 #include "sr_if.h"
 #include "sr_protocol.h"
+#include "sr_utils.h"
 
 /* This file defines an ARP cache, which is made of two structures: an ARP
    request queue, and ARP cache entries. The ARP request queue holds data about
@@ -147,6 +149,13 @@
 */
 void sr_arpcache_sweepreqs(struct sr_instance *sr) { 
     /* Fill this in */
+    struct sr_arpreq *req;
+    struct sr_arpreq *next_req;
+
+    for (req = sr->cache.requests; req != NULL; req = next_req) {
+      next_req = req->next;
+      handle_arpreq(sr, req);
+    }
 }
 
 /* You should not need to touch the rest of this code. */
@@ -213,7 +222,7 @@ struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
         new_pkt->buf = (uint8_t *)malloc(packet_len);
         memcpy(new_pkt->buf, packet, packet_len);
         new_pkt->len = packet_len;
-		new_pkt->iface = (char *)malloc(sr_IFACE_NAMELEN);
+		    new_pkt->iface = (char *)malloc(sr_IFACE_NAMELEN);
         strncpy(new_pkt->iface, iface, sr_IFACE_NAMELEN);
         new_pkt->next = req->packets;
         req->packets = new_pkt;
@@ -374,3 +383,68 @@ void *sr_arpcache_timeout(void *sr_ptr) {
     return NULL;
 }
 
+/* Helper function to handle ARP requests */
+void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
+  time_t curtime = time(NULL);
+  struct sr_packet *packet;
+
+  if (difftime(curtime, req->sent) > 1.0) {
+
+    /* send icmp host unreachable to source addr of all pkts waiting on this request  */
+    if (req->times_sent > 5) {
+      for (packet = req->packets; packet != NULL; packet = packet->next) {
+
+        /* create ip packet containing icmp host unreachable */
+        assert(packet->buf);
+        uint8_t *ip_packet = malloc(packet->len);
+
+        memcpy(ip_packet, packet->buf, packet->len);
+        struct sr_ip_hdr *ipHeader = (struct sr_ip_hdr *) ip_packet;  
+        
+        uint8_t* icmp_packet;
+
+        icmp_packet = createICMP(3, 0, packet->buf+20, packet->len-20);
+        memcpy(ip_packet+20, icmp_packet, 32);
+        free(icmp_packet);
+        
+        uint32_t src = ipHeader->ip_src;
+        ipHeader->ip_src = ipHeader->ip_dst;
+        ipHeader->ip_dst = src;
+        ipHeader->ip_ttl = 20;
+        ipHeader->ip_sum = cksum(ip_packet,20);
+
+        /* packet created.  send to source addr */
+        struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
+        memcpy(outgoing+14, ip_packet, packet->len-14);
+        
+        uint8_t destination[6];
+        memcpy(destination,outgoing->ether_shost,6);
+        memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
+        memcpy(outgoing->ether_dhost, &destination,6);
+
+        sr_send_packet(sr, (uint8_t*)outgoing, packet->len, packet->iface);
+      }
+      sr_arpreq_destroy(&sr->cache, req);
+    }
+
+    /* send an arp request */
+    else {
+      for (packet = req->packets; packet != NULL; packet = packet->next) {
+        assert(packet->buf);
+        uint8_t *arp_packet = malloc(packet->len);
+
+        memcpy(arp_packet, packet->buf, packet->len);
+        struct sr_arp_hdr *arpHeader = (struct sr_arp_hdr *) arp_packet;  
+
+        arpHeader->ar_op = 0x0001;
+
+        struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
+        memcpy(outgoing+14, arp_packet, packet->len-14);
+
+        sr_send_packet(sr, (uint8_t*)outgoing, packet->len, packet->iface);
+      }
+      req->sent = curtime;
+      req->times_sent++;
+    }
+  }
+}
