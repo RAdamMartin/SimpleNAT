@@ -441,6 +441,12 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         struct sr_arp_hdr *arpHeader = (struct sr_arp_hdr *) arp_packet;  
 
         arpHeader->ar_op = 0x0001;
+        int pos = 0;
+        for (; pos < ETHER_ADDR_LEN; pos++) {
+          arpHeader->ar_tha[pos] = 255;
+        }
+        printf("arp headerr!\n");
+        print_hdr_arp(arp_packet);
 
         struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
         memcpy(outgoing+14, arp_packet, packet->len-14);

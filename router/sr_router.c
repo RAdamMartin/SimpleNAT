@@ -214,10 +214,6 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
         else {
           char *iface;
           iface = sr_get_iface(sr, arpHeader->ar_tip);
-/*DEBUG*/print_hdr_arp(arp_packet);
-          print_addr_ip_int(ntohl(arpHeader->ar_sip));
-          printf("len: %d ",len);
-          sr_print_if(iface);
           req = sr_arpcache_queuereq(&sr->cache, ntohl(arpHeader->ar_sip), arp_packet, len, iface);
           handle_arpreq(sr, req);
           free(arp_packet);
