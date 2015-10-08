@@ -603,6 +603,7 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
         return -1;
     }
 
+    printf("packet sent?!?!!\n");
     free(sr_pkt);
 
     return 0;

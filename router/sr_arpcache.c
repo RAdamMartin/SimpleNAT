@@ -390,11 +390,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
   struct sr_arpcache *cache = &(sr->cache);
 
   if (difftime(curtime, req->sent) > 1.0) {
-    printf("AAAAAAAAAAAAAAAAAA");
+    printf("AAAAAAAAAAAAAAAAAA\n");
 
     /* send icmp host unreachable to source addr of all pkts waiting on this request  */
     if (req->times_sent > 5) {
-      printf("CCCCCCCCCCCCCCCCCCccc");
+      printf("CCCCCCCCCCCCCCCCCCcc\n");
       pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
 
@@ -423,9 +423,13 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         
         uint8_t destination[6];
         memcpy(destination,outgoing->ether_shost,6);
-        memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
         memcpy(outgoing->ether_dhost, &destination,6);
 
+        struct sr_if* iface = 0;
+        iface = sr_get_interface(sr, packet->iface);
+        memcpy(outgoing->ether_shost, iface->addr, 6);
+
+        printf("sending icmp?!?!\n");
         sr_send_packet(sr, (uint8_t*)outgoing, packet->len, packet->iface);
       }
       pthread_mutex_unlock(&(cache->lock));
@@ -434,7 +438,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
     /* send an arp request */
     else {
-      printf("BBBBBBBBBBBBBb");
+      printf("BBBBBBBBBBBBBb\n");
       if (req == NULL){
         printf("WTF\n");
       }
@@ -460,6 +464,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
         struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
         memcpy(outgoing+14, arp_packet, packet->len-14);
+
+        struct sr_if* iface = 0;
+        iface = sr_get_interface(sr, packet->iface);
+        memcpy(outgoing->ether_shost, iface->addr, 6);
+
         sr_send_packet(sr, (uint8_t*)outgoing, packet->len, packet->iface);
       }
       req->sent = curtime;
