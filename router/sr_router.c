@@ -82,7 +82,10 @@ void sr_handlepacket(struct sr_instance* sr,
 
   /* Ethernet Protocol */
   uint8_t* ether_packet = malloc(len);
+<<<<<<< HEAD
   printf("%p",ether_packet);
+=======
+>>>>>>> d506eb30e8cb853db663da6f5dc5f491938ee496
   memcpy(ether_packet,packet,len);
   /* fill in the struct with raw data in ether_packet */
   sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*)ether_packet;
