@@ -390,26 +390,21 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
   struct sr_arpcache *cache = &(sr->cache);
 
   if (difftime(curtime, req->sent) > 1.0) {
-    printf("AAAAAAAAAAAAAAAAAA\n");
-
+    
     /* send icmp host unreachable to source addr of all pkts waiting on this request  */
     if (req->times_sent > 5) {
-      printf("CCCCCCCCCCCCCCCCCCcc\n");
       pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
 
         /* create ip packet containing icmp host unreachable */
         assert(packet->buf);
-        uint8_t *ip_packet = malloc(packet->len);
+        uint8_t *ip_packet = malloc(60);
 
-        memcpy(ip_packet, packet->buf, packet->len);
         struct sr_ip_hdr *ipHeader = (struct sr_ip_hdr *) ip_packet;  
         
         uint8_t* icmp_packet;
-
         icmp_packet = createICMP(3, 0, packet->buf+20, packet->len-20);
         memcpy(ip_packet+20, icmp_packet, 32);
-        free(icmp_packet);
         
         uint32_t src = ipHeader->ip_src;
         ipHeader->ip_src = ipHeader->ip_dst;
@@ -429,8 +424,10 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         iface = sr_get_interface(sr, packet->iface);
         memcpy(outgoing->ether_shost, iface->addr, 6);
 
-        printf("sending icmp?!?!\n");
+        printf("icmp?!?\n");
         sr_send_packet(sr, (uint8_t*)outgoing, packet->len, packet->iface);
+
+        free(icmp_packet);
       }
       pthread_mutex_unlock(&(cache->lock));
       sr_arpreq_destroy(&sr->cache, req);
@@ -438,39 +435,38 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
     /* send an arp request */
     else {
-      printf("BBBBBBBBBBBBBb\n");
-      if (req == NULL){
-        printf("WTF\n");
-      }
-      packet = req->packets;
-      if (packet != NULL){
-        printf("%d\n",packet->len);
-      }
+      
       pthread_mutex_lock(&(cache->lock));
-      for (packet = req->packets; packet != NULL; packet = packet->next) {
-        assert(packet->buf);
-        uint8_t *arp_packet = malloc(packet->len);
+      packet = req->packets;
+      assert(packet->buf);
+      uint8_t *arp_packet = malloc(packet->len);
 
-        memcpy(arp_packet, packet->buf, packet->len);
-        struct sr_arp_hdr *arpHeader = (struct sr_arp_hdr *) arp_packet;  
+      memcpy(arp_packet, packet->buf, packet->len);
+      struct sr_arp_hdr *arpHeader = (struct sr_arp_hdr *) arp_packet;  
 
-        arpHeader->ar_op = 0x0001;
-        int pos = 0;
-        for (; pos < ETHER_ADDR_LEN; pos++) {
-          arpHeader->ar_tha[pos] = 255;
-        }
-        printf("arp headerr!\n");
-        print_hdr_arp(arp_packet);
-
-        struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
-        memcpy(outgoing+14, arp_packet, packet->len-14);
-
-        struct sr_if* iface = 0;
-        iface = sr_get_interface(sr, packet->iface);
-        memcpy(outgoing->ether_shost, iface->addr, 6);
-
-        sr_send_packet(sr, (uint8_t*)outgoing, packet->len, packet->iface);
+      /* set op code to request */
+      arpHeader->ar_op = 0x0001;
+      int pos = 0;
+      for (; pos < ETHER_ADDR_LEN; pos++) {
+        arpHeader->ar_tha[pos] = 255;
       }
+      uint32_t temp = arpHeader->ar_sip;
+      arpHeader->ar_sip = arpHeader->ar_tip;
+      arpHeader->ar_tip = temp;
+
+      struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
+      memcpy(outgoing+14, arp_packet, packet->len-14);
+
+      struct sr_if* iface = 0;
+      iface = sr_get_interface(sr, packet->iface);
+      memcpy(outgoing->ether_shost, iface->addr, 6);
+
+      print_hdr_eth((uint8_t*)outgoing);
+
+      sr_send_packet(sr, (uint8_t*)outgoing, packet->len, iface->name);
+
+      free(arp_packet);
+      
       req->sent = curtime;
       req->times_sent++;
       pthread_mutex_unlock(&(cache->lock));
