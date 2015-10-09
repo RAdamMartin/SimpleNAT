@@ -82,14 +82,10 @@ void sr_handlepacket(struct sr_instance* sr,
 
   /* Ethernet Protocol */
   uint8_t* ether_packet = malloc(len);
-<<<<<<< HEAD
-  printf("%p",ether_packet);
-=======
->>>>>>> d506eb30e8cb853db663da6f5dc5f491938ee496
   memcpy(ether_packet,packet,len);
-  /* fill in the struct with raw data in ether_packet */
+  /* fill in the struct with raw data in ether_packet 
   sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*)ether_packet;
-  /*
+  
   uint8_t* dest = (uint8_t*) ethernet_header->ether_dhost;
   uint8_t* source = (uint8_t*) ethernet_header->ether_shost;
   printf("Destination MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -103,26 +99,50 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("Protocol: %0xff \n",package_type);
   enum sr_ethertype arp = ethertype_arp;
   enum sr_ethertype ip = ethertype_ip;
-  //strip off ethernet header
-  int newLength = len - 14; 
+  /*strip off ethernet header*/
+  unsigned int newLength = len - 14; 
   ether_packet = ether_packet+14;
+  uint8_t* sr_processed_packet;
   if(package_type==arp){
     /* ARP protocol */
     printf("ARP! \\o/! \n");
   }else if(package_type==ip){
-
     /* IP protocol */
      printf("IP! \\o/! \n");
-
+     sr_processed_packet = sr_handleIPpacket(ether_packet,newLength);
   }else{
     /* drop package */
      printf("bad protocol! BOO! \n");
 
   }
-  printf("%p",ether_packet);
   free(ether_packet);
 }/* end sr_ForwardPacket */
 
-void sr_IPpacket(uint8_t* packet,uint len){
+uint8_t* sr_handleIPpacket(uint8_t* packet,unsigned int len){
   assert(packet);
+  uint8_t* ip_packet = malloc(len);
+  memcpy(ip_packet,packet,len);
+  struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) ip_packet;  
+  uint16_t currentChecksum = cksum(ip_packet,len);
+ 
+  if(currentChecksum==ipHeader->ip_sum && len>19){
+    /* drop TCP/UDP packagets */
+    if(ipHeader->ip_tos==6 || ipHeader->ip_tos==17){
+      /* ICMP port unreachable */
+      goto returnNull;
+    }else if(ipHeader->ip_tos==1){
+        /* ICMP stuff */
+        ipHeader->ip_ttl--;
+        return (uint8_t*)ipHeader; 
+    }else{
+      goto returnNull;
+    }
+  }else{
+    goto returnNull;
+  }
+
+  returnNull: 
+    free(ip_packet);
+    free(ipHeader);
+    return NULL;
 }
