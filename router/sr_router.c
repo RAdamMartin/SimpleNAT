@@ -120,10 +120,37 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
   uint16_t currentChecksum = cksum(ip_packet,20);
   uint8_t* icmp_packet;
 
+  /* if the destination address is not one of my routers interfaces */
   if (sr_get_interface_from_ip(sr,ntohl(ipHeader->ip_dst)) == NULL){
     printf("IP FWD\n");
     print_addr_ip_int(ntohl(ipHeader->ip_dst));
-    ip_packet = NULL;
+
+    /* check cache for ip->mac mapping for next hop */
+    struct sr_arpentry *entry;
+    entry = sr_arpcache_lookup(&sr->cache, ipHeader->ip_dst);
+
+    /* found next hop. send packet */
+    if (entry) {
+      memcpy(ip_packet+14, packet, len);
+      ipHeader->ip_src = iface->ip;
+      ipHeader->ip_dst = entry->ip;
+      ipHeader->ip_ttl = 64;
+      ipHeader->ip_sum = cksum(ip_packet,20);
+
+      memcpy(eth_packet->ether_dhost, entry->mac,6);
+      memcpy(eth_packet->ether_shost, iface->addr,6);
+
+      sr_send_packet(sr,packet,len,iface->name);
+      free(entry);
+    }
+
+    /* send an arp request to find out what interface to send packet out of */
+    else {
+      struct sr_arpreq *req;
+
+      req = sr_arpcache_queuereq(&sr->cache, ipHeader->ip_dst, packet, len, iface->name);
+      handle_arpreq(sr, req);
+    }
   }
   else if(currentChecksum==incm_cksum && len>34){
     if(ipHeader->ip_p==6 || ipHeader->ip_p==17){

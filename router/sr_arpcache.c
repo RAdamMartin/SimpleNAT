@@ -435,14 +435,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
     /* send an arp request */
     else {
-      
+      printf("handling req\n");
       pthread_mutex_lock(&(cache->lock));
       packet = req->packets;
       assert(packet->buf);
-      uint8_t *arp_packet = malloc(packet->len);
-
-      memcpy(arp_packet, packet->buf, packet->len);
-      struct sr_arp_hdr *arpHeader = (struct sr_arp_hdr *) arp_packet;  
+      struct sr_arp_hdr *arpHeader = (struct sr_arp_hdr *) packet->buf;  
 
       /* set op code to request */
       arpHeader->ar_op = 0x0001;
@@ -455,7 +452,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       arpHeader->ar_tip = temp;
 
       struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
-      memcpy(outgoing+14, arp_packet, packet->len-14);
+      memcpy(outgoing+14, packet->buf, packet->len-14);
 
       struct sr_if* iface = 0;
       iface = sr_get_interface(sr, packet->iface);
@@ -464,8 +461,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       print_hdr_eth((uint8_t*)outgoing);
 
       sr_send_packet(sr, (uint8_t*)outgoing, packet->len, iface->name);
-
-      free(arp_packet);
       
       req->sent = curtime;
       req->times_sent++;
