@@ -183,3 +183,25 @@ void print_hdrs(uint8_t *buf, uint32_t length) {
   }
 }
 
+uint8_t *createICMP(uint8_t type, uint8_t code, uint8_t *packet, unsigned int size){
+  uint8_t * ret = NULL;
+  if (type == 0) {
+    printf("unimplemented\n");
+  } else if (type == 3 || type = 11){
+    ret = malloc(sizeof(sr_icmp_t3_hdr_t));
+    sr_icmp_t3_hdr_t *hdr = (sr_icmp_t3_hdr_t*) ret;
+    hdr->icmp_type = type;
+    hdr->icmp_code = code;
+    hdr->icmp_sum = cksum(ret,16);
+    uint16_t num = 28;
+    if (size < 64) {
+      num = size;
+    }
+    hdr->unused = 64-num;
+    hdr->next_mtu = (num+7)%8;
+    memcpy(hdr->data,packet,num);
+  } else {
+    fprintf(stderr, "ICMP for type %d is not implemented \n", type);
+  }
+  return ret;
+}

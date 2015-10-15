@@ -45,4 +45,7 @@ void print_hdr_arp(uint8_t *buf);
 /* prints all headers, starting from eth */
 void print_hdrs(uint8_t *buf, uint32_t length);
 
+/* ICMP Methods */
+uint8_t *createICMP(uint8_t type, uint8_t code, uint8_t *packet, unsigned int size);
+
 #endif /* -- SR_UTILS_H -- */

@@ -99,12 +99,16 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("Protocol: %0xff \n",package_type);
   enum sr_ethertype arp = ethertype_arp;
   enum sr_ethertype ip = ethertype_ip;
-  //strip off ethernet header
+  /*strip off ethernet header*/
   int newLength = len - 14; 
-  ether_packet = ether_packet+14;
+  uint8_t*new_packet = ether_packet+14;
   if(package_type==arp){
     /* ARP protocol */
     printf("ARP! \\o/! \n");
+    uint8_t*icmp = createICMP(3,0,new_packet,newLength);
+    printf("ICMP Packet at %p\n",icmp);
+    print_hdr_icmp(icmp);
+    free(icmp);
   }else if(package_type==ip){
 
     /* IP protocol */
@@ -118,7 +122,3 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("%p",ether_packet);
   free(ether_packet);
 }/* end sr_ForwardPacket */
-
-void sr_IPpacket(uint8_t* packet,uint len){
-  assert(packet);
-}
