@@ -187,7 +187,7 @@ uint8_t *createICMP(uint8_t type, uint8_t code, uint8_t *packet, unsigned int si
   uint8_t * ret = NULL;
   if (type == 0) {
     printf("unimplemented\n");
-  } else if (type == 3 || type = 11){
+  } else if (type == 3 || type == 11){
     ret = malloc(sizeof(sr_icmp_t3_hdr_t));
     sr_icmp_t3_hdr_t *hdr = (sr_icmp_t3_hdr_t*) ret;
     hdr->icmp_type = type;
