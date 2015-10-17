@@ -72,17 +72,18 @@ void sr_handlepacket(struct sr_instance* sr,
         unsigned int len,
         char* interface/* lent */)
 {
-
+  printf("Router Accessed\n");
   /* REQUIRES */
   assert(sr);
   assert(packet);
   assert(interface);
 
   printf("*** -> Received packet of length %d \n",len);
-
+  
   /* Ethernet Protocol */
   uint8_t* ether_packet = malloc(len);
   memcpy(ether_packet,packet,len);
+  /*print_hdr_eth(ether_packet);*/
   /* fill in the struct with raw data in ether_packet 
   sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*)ether_packet;
   
@@ -99,16 +100,21 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("Protocol: %0xff \n",package_type);
   enum sr_ethertype arp = ethertype_arp;
   enum sr_ethertype ip = ethertype_ip;
+  uint8_t* temp = createICMP(3,0,ether_packet+14,len-14);
+  print_hdr_icmp(temp);
+  free(temp);
+  /*print_hdr_ip(ether_packet+14);*/
   /*strip off ethernet header*/
   /*unsigned int newLength = len - 14; */
-  uint8_t* sr_processed_packet;
+  /*uint8_t* sr_processed_packet;*/
   if(package_type==arp){
     /* ARP protocol */
     printf("ARP! \\o/! \n");
   }else if(package_type==ip){
     /* IP protocol */
      printf("IP! \\o/! \n");
-     sr_processed_packet = sr_handleIPpacket(ether_packet+14,len-14);
+     /*print_hdr_ip(ether_packet+14);*/
+     /*sr_processed_packet = sr_handleIPpacket(ether_packet+14,len-14);*/
   }else{
     /* drop package */
      printf("bad protocol! BOO! \n");
@@ -123,25 +129,36 @@ uint8_t* sr_handleIPpacket(uint8_t* packet,unsigned int len){
   memcpy(ip_packet,packet,len);
   struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) ip_packet;  
   uint16_t currentChecksum = cksum(ip_packet,len);
+  uint8_t* icmp_packet;
  
   if(currentChecksum==ipHeader->ip_sum && len>19){
     /* drop TCP/UDP packagets */
     if(ipHeader->ip_tos==6 || ipHeader->ip_tos==17){
-      /* ICMP port unreachable */
-      goto returnNull;
-    }else if(ipHeader->ip_tos==1){
-        /* ICMP stuff */
-        ipHeader->ip_ttl--;
-        return (uint8_t*)ipHeader; 
-    }else{
-      goto returnNull;
+      icmp_packet = createICMP(3,3,packet+20,len-20);
+      memcpy(ip_packet+20,icmp_packet,32);
+      free(icmp_packet);
+      uint32_t src = ipHeader->ip_src;
+      ipHeader->ip_src = ipHeader->ip_dst;
+      ipHeader->ip_dst = src;
+      ipHeader->ip_ttl = 20;
+      ipHeader->ip_sum = cksum(ip_packet,20);
+      return ip_packet;
     }
-  }else{
-    goto returnNull;
+    else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){
+        struct sr_icmp_hdr * icmp_header = (struct sr_icmp_hdr *) (ipHeader + 20);
+        currentChecksum = cksum(icmp_header,2);
+        if(currentChecksum == icmp_header->icmp_sum && icmp_header->icmp_type != 8 && icmp_header->icmp_code != 0) {
+          icmp_header->icmp_type = 0;
+          icmp_header->icmp_sum = cksum(icmp_header,2);
+          uint32_t src = ipHeader->ip_src;
+          ipHeader->ip_src = ipHeader->ip_dst;
+          ipHeader->ip_dst = src;
+          ipHeader->ip_ttl = 20;
+          ipHeader->ip_sum = cksum(ip_packet,20);
+          return ip_packet; 
+        }
+    }
   }
-
-  returnNull: 
-    free(ip_packet);
-    free(ipHeader);
-    return NULL;
+  free(ip_packet);
+  return NULL;
 }
