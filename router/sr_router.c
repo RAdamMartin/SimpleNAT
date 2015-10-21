@@ -136,6 +136,7 @@ void sr_handlepacket(struct sr_instance* sr,
 
     }
     free(ether_packet);
+    free(sr_processed_packet);
   }
 }/* end sr_ForwardPacket */
 
