@@ -81,46 +81,62 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("*** -> Received packet of length %d \n",len);
   
   /* Ethernet Protocol */
-  uint8_t* ether_packet = malloc(len);
-  memcpy(ether_packet,packet,len);
-  /*print_hdr_eth(ether_packet);*/
-  /* fill in the struct with raw data in ether_packet 
-  sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*)ether_packet;
-  
-  uint8_t* dest = (uint8_t*) ethernet_header->ether_dhost;
-  uint8_t* source = (uint8_t*) ethernet_header->ether_shost;
-  printf("Destination MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
-         dest[0] & 0xff, dest[1] & 0xff, dest[2] & 0xff,
-         dest[3] & 0xff, dest[4] & 0xff, dest[5] & 0xff);
-  printf("Source MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
-         source[0] & 0xff, source[1] & 0xff, source[2] & 0xff,
-         source[3] & 0xff, source[4] & 0xff, source[5] & 0xff);
-  */
-  uint16_t package_type = ethertype(ether_packet);
-  printf("Protocol: %0xff \n",package_type);
-  enum sr_ethertype arp = ethertype_arp;
-  enum sr_ethertype ip = ethertype_ip;
-  uint8_t* temp = createICMP(3,0,ether_packet+14,len-14);
-  print_hdr_icmp(temp);
-  free(temp);
-  /*print_hdr_ip(ether_packet+14);*/
-  /*strip off ethernet header*/
-  /*unsigned int newLength = len - 14; */
-  /*uint8_t* sr_processed_packet;*/
-  if(package_type==arp){
-    /* ARP protocol */
-    printf("ARP! \\o/! \n");
-  }else if(package_type==ip){
-    /* IP protocol */
-     printf("IP! \\o/! \n");
-     /*print_hdr_ip(ether_packet+14);*/
-     /*sr_processed_packet = sr_handleIPpacket(ether_packet+14,len-14);*/
-  }else{
-    /* drop package */
-     printf("bad protocol! BOO! \n");
+  if(len>=60){
+    uint8_t* ether_packet = malloc(len);
+    memcpy(ether_packet,packet,len);
+    /*print_hdr_eth(ether_packet);*/  
 
+    uint16_t package_type = ethertype(ether_packet);
+    printf("Protocol: %0xff \n",package_type);
+    enum sr_ethertype arp = ethertype_arp;
+    enum sr_ethertype ip = ethertype_ip;
+    uint8_t* temp = createICMP(3,0,ether_packet+14,len-14);
+    print_hdr_icmp(temp);
+    free(temp);
+    /*print_hdr_ip(ether_packet+14);*/
+    /*strip off ethernet header*/
+    /*unsigned int newLength = len - 14; */
+    uint8_t* sr_processed_packet;
+    if(package_type==arp){
+      /* ARP protocol */
+      int i = 0;
+      struct sr_if* interfaces = sr->if_list;
+      printf("ARP! \\o/! \n");
+      /*sr_processed_packet =  sr_handleARPpacket();*/
+      /*copy the new packet content*/
+      struct sr_ethernet_hdr* outgoing = (struct sr_ethernet_hdr*)ether_packet;
+      memcpy(outgoing+14,sr_processed_packet,len-14);
+      /*swapping outgoing and incoming addr*/
+      uint8_t destination[6];
+      memcpy(destination,outgoing->ether_shost,6);
+      memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
+      memcpy(outgoing->ether_dhost, &destination,6);
+      for(i=0;i<3;i++){
+        if(interfaces[i].ip == *(uint32_t*)destination){
+          sr_send_packet(sr,(uint8_t*)outgoing,len,interfaces[i].name);
+        }
+      }
+    }else if(package_type==ip){
+      /* IP protocol */
+      printf("IP! \\o/! \n");
+      /*print_hdr_ip(ether_packet+14);*/
+      sr_processed_packet = sr_handleIPpacket(ether_packet+14,len-14);
+      /*copy the new packet content*/
+      struct sr_ethernet_hdr* outgoing = (struct sr_ethernet_hdr*)ether_packet;
+      memcpy(outgoing+14,sr_processed_packet,len-14);
+      /*swapping outgoing and incoming addr*/
+      uint8_t destination[6];
+      memcpy(destination,outgoing->ether_shost,6);
+      memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
+      memcpy(outgoing->ether_dhost, &destination,6);
+      sr_send_packet(sr,(uint8_t*)outgoing,len,interface);
+    }else{
+      /* drop package */
+       printf("bad protocol! BOO! \n");
+
+    }
+    free(ether_packet);
   }
-  free(ether_packet);
 }/* end sr_ForwardPacket */
 
 uint8_t* sr_handleIPpacket(uint8_t* packet,unsigned int len){
