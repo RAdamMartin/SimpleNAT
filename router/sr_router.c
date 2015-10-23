@@ -89,8 +89,10 @@ void sr_handlepacket(struct sr_instance* sr,
 
     uint16_t package_type = ethertype(ether_packet);
     printf("Protocol: %0xff \n",package_type);
+    
     enum sr_ethertype arp = ethertype_arp;
     enum sr_ethertype ip = ethertype_ip;
+    
     uint8_t* temp = createICMP(3,0,ether_packet+14,len-14);
     print_hdr_icmp(temp);
     free(temp);
@@ -100,8 +102,6 @@ void sr_handlepacket(struct sr_instance* sr,
     uint8_t* sr_processed_packet;
     if(package_type==arp){
       /* ARP protocol */
-      int i = 0;
-      struct sr_if* interfaces = sr->if_list;
       printf("ARP! \\o/! \n");
       /*sr_processed_packet =  sr_handleARPpacket();*/
       /*copy the new packet content*/
@@ -112,11 +112,8 @@ void sr_handlepacket(struct sr_instance* sr,
       memcpy(destination,outgoing->ether_shost,6);
       memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
       memcpy(outgoing->ether_dhost, &destination,6);
-      for(i=0;i<3;i++){
-        if(interfaces[i].ip == *(uint32_t*)destination){
-          sr_send_packet(sr,(uint8_t*)outgoing,len,interfaces[i].name);
-        }
-      }
+      struct sr_rt* entry = sr_find_routing_entry(sr, (char*)destination);
+      sr_send_packet(sr,(uint8_t*)outgoing,len,entry->interface);
     }else if(package_type==ip){
       /* IP protocol */
       printf("IP! \\o/! \n");
@@ -138,7 +135,8 @@ void sr_handlepacket(struct sr_instance* sr,
     free(ether_packet);
     free(sr_processed_packet);
   }
-}/* end sr_ForwardPacket */
+}
+/* end sr_ForwardPacket */
 
 uint8_t* sr_handleIPpacket(uint8_t* packet,unsigned int len){
   assert(packet);
