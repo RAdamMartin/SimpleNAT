@@ -196,12 +196,12 @@ struct sr_rt* sr_find_routing_entry(struct sr_instance* sr, char * addr)
     
     while(rt_walker->next)
     {
-        if(strcmp(inet_ntoa(entry->dest),addr) == 0){
+        if(strcmp(inet_ntoa(rt_walker->dest),addr) == 0){
             return rt_walker;
         }
         rt_walker = rt_walker->next; 
     }
 
-    return NULL
+    return NULL;
 
 } /* -- sr_find_routing_entry -- */
