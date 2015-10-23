@@ -176,3 +176,32 @@ void sr_print_routing_entry(struct sr_rt* entry)
     printf("%s\n",entry->interface);
 
 } /* -- sr_print_routing_entry -- */
+
+/*---------------------------------------------------------------------
+ * Method:
+ *
+ *---------------------------------------------------------------------*/
+
+struct sr_rt* sr_find_routing_entry(struct sr_instance* sr, char * addr)
+{
+    struct sr_rt* rt_walker = 0;
+
+    if(sr->routing_table == 0)
+    {
+        printf(" *warning* Routing table empty \n");
+        return NULL;
+    }
+
+    rt_walker = sr->routing_table;
+    
+    while(rt_walker->next)
+    {
+        if(strcmp(inet_ntoa(entry->dest),addr) == 0){
+            return rt_walker;
+        }
+        rt_walker = rt_walker->next; 
+    }
+
+    return NULL
+
+} /* -- sr_find_routing_entry -- */
