@@ -81,35 +81,7 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("*** -> Received packet of length %d \n",len);
   
   /* Ethernet Protocol */
-<<<<<<< HEAD
   /*TODO: Sanity Check Packet*/
-  uint8_t* ether_packet = malloc(len);
-  memcpy(ether_packet,packet,len);
-  /*print_hdr_eth(ether_packet);*/  
-
-  uint16_t package_type = ethertype(ether_packet);
-  printf("Protocol: %0xff \n",package_type);
-  enum sr_ethertype arp = ethertype_arp;
-  enum sr_ethertype ip = ethertype_ip;
-  uint8_t* temp = createICMP(3,0,ether_packet+14,len-14);
-  print_hdr_icmp(temp);
-  free(temp);
-  /*print_hdr_ip(ether_packet+14);*/
-  /*strip off ethernet header*/
-  /*unsigned int newLength = len - 14; */
-  /*uint8_t* sr_processed_packet;*/
-  if(package_type==arp){
-    /* ARP protocol */
-    printf("ARP! \\o/! \n");
-  }else if(package_type==ip){
-    /* IP protocol */
-     printf("IP! \\o/! \n");
-     /*print_hdr_ip(ether_packet+14);*/
-     /*sr_processed_packet = sr_handleIPpacket(ether_packet+14,len-14);*/
-  }else{
-    /* drop package */
-     printf("bad protocol! BOO! \n");
-=======
   if(len>=60){
     uint8_t* ether_packet = malloc(len);
     memcpy(ether_packet,packet,len);
@@ -162,8 +134,6 @@ void sr_handlepacket(struct sr_instance* sr,
     }else{
       /* drop package */
        printf("bad protocol! BOO! \n");
->>>>>>> 1fc82619b2c4a86ac6e6ebb2ac0a3758a79439ae
-
     }
     free(ether_packet);
     free(sr_processed_packet);
