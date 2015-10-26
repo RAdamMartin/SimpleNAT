@@ -101,7 +101,7 @@ void sr_handlepacket(struct sr_instance* sr,
       int i = 0;
       struct sr_if* interfaces = sr->if_list;
       printf("ARP! \\o/! \n");
-      sr_processed_packet =  sr_handleARPpacket(sr, ether_packet+14, len-14);
+      sr_processed_packet =  sr_handleARPpacket(sr, ether_packet, len);
 
       if (sr_processed_packet){
         /*copy the new packet content*/
@@ -124,7 +124,7 @@ void sr_handlepacket(struct sr_instance* sr,
       /* IP protocol */
       printf("IP! \\o/! \n");
       /*print_hdr_ip(ether_packet+14);*/
-      sr_processed_packet = sr_handleIPpacket(sr, ether_packet,len);
+      sr_processed_packet = sr_handleIPpacket(sr, ether_packet+14,len-14);
       /*copy the new packet content*/
       struct sr_ethernet_hdr* outgoing = (struct sr_ethernet_hdr*)ether_packet;
       memcpy(outgoing+14,sr_processed_packet,len-14);
