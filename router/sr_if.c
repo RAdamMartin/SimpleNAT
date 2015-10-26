@@ -195,37 +195,6 @@ void sr_print_if(struct sr_if* iface)
 
 
 /*--------------------------------------------------------------------- 
- * Method: sr_in_if_list(..)
- * Scope: Global
- *
- * checks if ip addr is in interface
- *
- *---------------------------------------------------------------------*/
-
-unsigned char sr_in_if_list(struct sr_instance* sr, uint32_t addr)
-{
-    struct sr_if* if_walker = 0;
-
-    if(sr->if_list == 0)
-    {
-        return 0;
-    }
-
-    if_walker = sr->if_list;
-    while(if_walker->next)
-    {
-        if (if_walker->ip == addr){
-            return 1;
-        }
-        if_walker = if_walker->next; 
-    }
-
-    return 0;
-
-} /* -- sr_in_if_list -- */
-
-
-/*--------------------------------------------------------------------- 
  * Method: sr_get_iface(..)
  * Scope: Global
  *
