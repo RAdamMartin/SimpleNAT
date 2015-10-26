@@ -387,11 +387,13 @@ void *sr_arpcache_timeout(void *sr_ptr) {
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
   time_t curtime = time(NULL);
   struct sr_packet *packet;
+  struct sr_arpcache *cache = &(sr->cache);
 
   if (difftime(curtime, req->sent) > 1.0) {
 
     /* send icmp host unreachable to source addr of all pkts waiting on this request  */
     if (req->times_sent > 5) {
+      pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
 
         /* create ip packet containing icmp host unreachable */
@@ -424,11 +426,13 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
         sr_send_packet(sr, (uint8_t*)outgoing, packet->len, packet->iface);
       }
+      pthread_mutex_unlock(&(cache->lock));
       sr_arpreq_destroy(&sr->cache, req);
     }
 
     /* send an arp request */
     else {
+      pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
         assert(packet->buf);
         uint8_t *arp_packet = malloc(packet->len);
@@ -445,6 +449,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       }
       req->sent = curtime;
       req->times_sent++;
+      pthread_mutex_unlock(&(cache->lock));
     }
   }
 }

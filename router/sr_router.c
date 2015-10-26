@@ -192,7 +192,6 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
     uint8_t* arp_packet = malloc(len);
     memcpy(arp_packet,packet,len);
     struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *) arp_packet;
-    print_hdr_arp(arp_packet);
 
     enum sr_arp_opcode request = arp_op_request;
     enum sr_arp_opcode reply = arp_op_reply;
@@ -203,12 +202,9 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
     struct sr_arpreq *req;
 
     /* handle an arp request. send a reply to the sender */
-    printf("%d == %d\n", ntohs(arpHeader->ar_op),request);
     if (ntohs(arpHeader->ar_op) == request) {
-      printf("AAAAAAAAAAA\n");
         /* found an ip->mac mapping */
         if (entry) {
-          printf("CCCCCCCCCCC\n");
           arpHeader->ar_op = reply;
           arpHeader->ar_sip = arpHeader->ar_tip;
           arpHeader->ar_tip = entry->ip;
@@ -218,8 +214,11 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
         else {
           char *iface;
           iface = sr_get_iface(sr, arpHeader->ar_tip);
-
-          req = sr_arpcache_queuereq(&sr->cache, arpHeader->ar_sip, packet, len, iface);
+/*DEBUG*/print_hdr_arp(arp_packet);
+          print_addr_ip_int(ntohl(arpHeader->ar_sip));
+          printf("len: %d ",len);
+          sr_print_if(iface);
+          req = sr_arpcache_queuereq(&sr->cache, ntohl(arpHeader->ar_sip), arp_packet, len, iface);
           handle_arpreq(sr, req);
           free(arp_packet);
           return NULL;
@@ -228,13 +227,11 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
     /* handle an arp reply */
     else {
       if (entry) {
-        printf("BBBBBBBBBBBB\n");
         req = sr_arpcache_insert(&sr->cache, entry->mac, entry->ip);
         struct sr_packet *req_packet;
 
         /* found an ip->mac mapping.  send all pakets waiting on the request */
         if (req) {
-printf("DDDDDDDDDDd\n");
           for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
             assert(req_packet->buf);
             uint8_t* ip_packet = malloc(len);
