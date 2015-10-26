@@ -213,7 +213,10 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
         }
         else {
           char *iface;
-          iface = sr_get_iface(sr, ntohl(arpHeader->ar_tip));
+          iface = sr_get_iface(sr, arpHeader->ar_tip);
+          if (iface == NULL){
+            printf("damnit\n");
+          }
           req = sr_arpcache_queuereq(&sr->cache, ntohl(arpHeader->ar_sip), arp_packet, len, iface);
           if (arp_packet && len && iface){
             printf("huh\n");
