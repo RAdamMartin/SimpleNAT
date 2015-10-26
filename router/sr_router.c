@@ -101,7 +101,7 @@ void sr_handlepacket(struct sr_instance* sr,
       int i = 0;
       struct sr_if* interfaces = sr->if_list;
       printf("ARP! \\o/! \n");
-      sr_processed_packet =  sr_handleARPpacket(sr, packet, len);
+      sr_processed_packet =  sr_handleARPpacket(sr, ether_packet+14, len-14);
 
       if (sr_processed_packet){
         /*copy the new packet content*/
@@ -112,6 +112,7 @@ void sr_handlepacket(struct sr_instance* sr,
         memcpy(destination,outgoing->ether_shost,6);
         memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
         memcpy(outgoing->ether_dhost, &destination,6);
+        print_hdrs(ether_packet,len);
         for(i=0;i<3;i++){
           if(interfaces[i].ip == *(uint32_t*)destination){
             sr_send_packet(sr,(uint8_t*)outgoing,len,interfaces[i].name);
@@ -190,6 +191,7 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
     uint8_t* arp_packet = malloc(len);
     memcpy(arp_packet,packet,len);
     struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *) arp_packet;
+    print_hdr_arp(arp_packet);
 
     enum sr_arp_opcode request = arp_op_request;
     enum sr_arp_opcode reply = arp_op_reply;
@@ -200,9 +202,12 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
     struct sr_arpreq *req;
 
     /* handle an arp request. send a reply to the sender */
-    if (arpHeader->ar_op == request) {
+    printf("%d == %d\n", ntohs(arpHeader->ar_op),request);
+    if (ntohs(arpHeader->ar_op) == request) {
+      printf("AAAAAAAAAAA\n");
         /* found an ip->mac mapping */
         if (entry) {
+          printf("CCCCCCCCCCC\n");
           arpHeader->ar_op = reply;
           arpHeader->ar_sip = arpHeader->ar_tip;
           arpHeader->ar_tip = entry->ip;
@@ -221,11 +226,13 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
     /* handle an arp reply */
     else {
       if (entry) {
+        printf("BBBBBBBBBBBB\n");
         req = sr_arpcache_insert(&sr->cache, entry->mac, entry->ip);
         struct sr_packet *req_packet;
 
         /* found an ip->mac mapping.  send all pakets waiting on the request */
         if (req) {
+printf("DDDDDDDDDDd\n");
           for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
             assert(req_packet->buf);
             uint8_t* ip_packet = malloc(len);
