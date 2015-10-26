@@ -83,7 +83,7 @@ void sr_handlepacket(struct sr_instance* sr,
   
   /* Ethernet Protocol */
   /*TODO: Sanity Check Packet*/
-  if(len>=60){
+  if(len>=42){
     uint8_t* ether_packet = malloc(len);
     memcpy(ether_packet,packet,len);
     /*print_hdr_eth(ether_packet);*/  
@@ -92,9 +92,6 @@ void sr_handlepacket(struct sr_instance* sr,
     printf("Protocol: %0xff \n",package_type);
     enum sr_ethertype arp = ethertype_arp;
     enum sr_ethertype ip = ethertype_ip;
-    uint8_t* temp = createICMP(3,0,ether_packet+14,len-14);
-    print_hdr_icmp(temp);
-    free(temp);
     /*print_hdr_ip(ether_packet+14);*/
     /*strip off ethernet header*/
     /*unsigned int newLength = len - 14; */
@@ -169,6 +166,7 @@ uint8_t* sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int 
       ipHeader->ip_sum = cksum(ip_packet,20);
       return ip_packet;
     }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){
+      printf("BOO\n");
 	    struct sr_icmp_hdr * icmp_header = (struct sr_icmp_hdr *) (ipHeader + 20);
 	    currentChecksum = cksum(icmp_header,2);
 	    if(currentChecksum == icmp_header->icmp_sum && icmp_header->icmp_type != 8 && icmp_header->icmp_code != 0) {
