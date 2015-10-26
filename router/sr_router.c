@@ -118,6 +118,7 @@ void sr_handlepacket(struct sr_instance* sr,
             sr_send_packet(sr,(uint8_t*)outgoing,len,interfaces[i].name);
           }
         }
+        free(sr_processed_packet);
       }
     }else if(package_type==ip){
       /* IP protocol */
@@ -133,12 +134,12 @@ void sr_handlepacket(struct sr_instance* sr,
       memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
       memcpy(outgoing->ether_dhost, &destination,6);
       sr_send_packet(sr,(uint8_t*)outgoing,len,interface);
+      free(sr_processed_packet);
     }else{
       /* drop package */
        printf("bad protocol! BOO! \n");
     }
     free(ether_packet);
-    free(sr_processed_packet);
   }
 }/* end sr_ForwardPacket */
 
@@ -220,6 +221,7 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
 
           req = sr_arpcache_queuereq(&sr->cache, arpHeader->ar_sip, packet, len, iface);
           handle_arpreq(sr, req);
+          free(arp_packet);
           return NULL;
         }
     }
@@ -266,6 +268,7 @@ printf("DDDDDDDDDDd\n");
           }
         }
       }
+      free(arp_packet);
       return NULL;
     }
 }
