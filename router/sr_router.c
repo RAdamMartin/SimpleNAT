@@ -201,9 +201,9 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
 
     struct sr_arpreq *req;
 
-    /* handle an arp request. send a reply to the sender */
+    /* handle an arp request.*/
     if (ntohs(arpHeader->ar_op) == request) {
-        /* found an ip->mac mapping */
+        /* found an ip->mac mapping. send a reply to the requester's MAC addr */
         if (entry) {
           arpHeader->ar_op = reply;
           arpHeader->ar_sip = arpHeader->ar_tip;
@@ -211,6 +211,7 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
           free(entry);
           return arp_packet;
         }
+        /* queue the request */
         else {
           char *iface;
           iface = sr_get_iface(sr, arpHeader->ar_tip);
@@ -231,43 +232,42 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
     }
     /* handle an arp reply */
     else {
-      if (entry) {
-        req = sr_arpcache_insert(&sr->cache, entry->mac, entry->ip);
-        struct sr_packet *req_packet;
-
-        /* found an ip->mac mapping.  send all pakets waiting on the request */
-        if (req) {
-          for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
-            assert(req_packet->buf);
-            uint8_t* ip_packet = malloc(len);
-            memcpy(ip_packet,req_packet->buf, req_packet->len);
-            struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) ip_packet;  
-
-            uint32_t src = ipHeader->ip_src;
-            ipHeader->ip_src = ipHeader->ip_dst;
-            ipHeader->ip_dst = src;
-            ipHeader->ip_ttl = 20;
-            ipHeader->ip_sum = cksum(ip_packet,20);
-
-            /*copy the new packet content*/
-            struct sr_ethernet_hdr* outgoing = (struct sr_ethernet_hdr*)packet;
-            memcpy(outgoing+14,ip_packet,len-14);
-
-            int i = 0;
-            struct sr_if* interfaces = sr->if_list;
       
-            /*swapping outgoing and incoming addr*/
-            uint8_t destination[6];
-            memcpy(destination,outgoing->ether_shost,6);
-            memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
-            memcpy(outgoing->ether_dhost, &destination,6);
+      req = sr_arpcache_insert(&sr->cache, entry->mac, entry->ip);
+      struct sr_packet *req_packet;
 
-            for(i=0;i<3;i++){
-              if(interfaces[i].ip == *(uint32_t*)destination){
-                sr_send_packet(sr,(uint8_t*)outgoing,len,interfaces[i].name);
-              }
-            }         
-          }
+      /* found and ip->mac mapping. send all pakets waiting on the request */
+      if (req) {
+        for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
+          assert(req_packet->buf);
+          uint8_t* ip_packet = malloc(len);
+          memcpy(ip_packet,req_packet->buf, req_packet->len);
+          struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) ip_packet;  
+
+          uint32_t src = ipHeader->ip_src;
+          ipHeader->ip_src = ipHeader->ip_dst;
+          ipHeader->ip_dst = src;
+          ipHeader->ip_ttl = 20;
+          ipHeader->ip_sum = cksum(ip_packet,20);
+
+          /*copy the new packet content*/
+          struct sr_ethernet_hdr* outgoing = (struct sr_ethernet_hdr*)packet;
+          memcpy(outgoing+14,ip_packet,len-14);
+
+          int i = 0;
+          struct sr_if* interfaces = sr->if_list;
+    
+          /*swapping outgoing and incoming addr*/
+          uint8_t destination[6];
+          memcpy(destination,outgoing->ether_shost,6);
+          memcpy(outgoing->ether_shost, outgoing->ether_dhost,6);
+          memcpy(outgoing->ether_dhost, &destination,6);
+
+          for(i=0;i<3;i++){
+            if(interfaces[i].ip == *(uint32_t*)destination){
+              sr_send_packet(sr,(uint8_t*)outgoing,len,interfaces[i].name);
+            }
+          }         
         }
       }
       free(arp_packet);
