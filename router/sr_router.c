@@ -153,7 +153,7 @@ uint8_t* sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int 
   uint8_t* icmp_packet;
 
 
-  if (sr_in_if_list(sr,ipHeader->ip_dst) == 0){
+  if (sr_in_if_list(sr,ipHeader->ip_dst) != 0){
     printf("unimplemented fwd\n");
   }
   else if(currentChecksum==ipHeader->ip_sum && len>19){
@@ -168,20 +168,19 @@ uint8_t* sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int 
       ipHeader->ip_ttl = 20;
       ipHeader->ip_sum = cksum(ip_packet,20);
       return ip_packet;
-    }
-    else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){
-        struct sr_icmp_hdr * icmp_header = (struct sr_icmp_hdr *) (ipHeader + 20);
-        currentChecksum = cksum(icmp_header,2);
-        if(currentChecksum == icmp_header->icmp_sum && icmp_header->icmp_type != 8 && icmp_header->icmp_code != 0) {
-          icmp_header->icmp_type = 0;
-          icmp_header->icmp_sum = cksum(icmp_header,2);
-          uint32_t src = ipHeader->ip_src;
-          ipHeader->ip_src = ipHeader->ip_dst;
-          ipHeader->ip_dst = src;
-          ipHeader->ip_ttl = 20;
-          ipHeader->ip_sum = cksum(ip_packet,20);
-          return ip_packet; 
-        }
+    }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){
+	    struct sr_icmp_hdr * icmp_header = (struct sr_icmp_hdr *) (ipHeader + 20);
+	    currentChecksum = cksum(icmp_header,2);
+	    if(currentChecksum == icmp_header->icmp_sum && icmp_header->icmp_type != 8 && icmp_header->icmp_code != 0) {
+	      icmp_header->icmp_type = 0;
+	      icmp_header->icmp_sum = cksum(icmp_header,2);
+	      uint32_t src = ipHeader->ip_src;
+	      ipHeader->ip_src = ipHeader->ip_dst;
+	      ipHeader->ip_dst = src;
+	      ipHeader->ip_ttl = 20;
+	      ipHeader->ip_sum = cksum(ip_packet,20);
+	      return ip_packet; 
+	    }
     }
   }
   free(ip_packet);
