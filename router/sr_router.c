@@ -124,7 +124,7 @@ void sr_handlepacket(struct sr_instance* sr,
       /* IP protocol */
       printf("IP! \\o/! \n");
       /*print_hdr_ip(ether_packet+14);*/
-      sr_processed_packet = sr_handleIPpacket(sr, ether_packet+14,len-14);
+      sr_processed_packet = sr_handleIPpacket(sr, ether_packet,len);
       /*copy the new packet content*/
       struct sr_ethernet_hdr* outgoing = (struct sr_ethernet_hdr*)ether_packet;
       memcpy(outgoing+14,sr_processed_packet,len-14);
@@ -191,7 +191,7 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
     assert(packet);
     uint8_t* arp_packet = malloc(len);
     memcpy(arp_packet,packet,len);
-    struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *) arp_packet;
+    struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *) (arp_packet+14);
 
     enum sr_arp_opcode request = arp_op_request;
     enum sr_arp_opcode reply = arp_op_reply;
@@ -215,6 +215,12 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
           char *iface;
           iface = sr_get_iface(sr, ntohl(arpHeader->ar_tip));
           req = sr_arpcache_queuereq(&sr->cache, ntohl(arpHeader->ar_sip), arp_packet, len, iface);
+          if (arp_packet && len && iface){
+            printf("huh\n");
+          }
+          else {
+            printf("AHA\n");
+          }
           handle_arpreq(sr, req);
           free(arp_packet);
           return NULL;

@@ -390,9 +390,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
   struct sr_arpcache *cache = &(sr->cache);
 
   if (difftime(curtime, req->sent) > 1.0) {
+    printf("AAAAAAAAAAAAAAAAAA");
 
     /* send icmp host unreachable to source addr of all pkts waiting on this request  */
     if (req->times_sent > 5) {
+      printf("CCCCCCCCCCCCCCCCCCccc");
       pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
 
@@ -432,6 +434,14 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
     /* send an arp request */
     else {
+      printf("BBBBBBBBBBBBBb");
+      if (req == NULL){
+        printf("WTF\n");
+      }
+      packet = req->packets;
+      if (packet != NULL){
+        printf("%d\n",packet->len);
+      }
       pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
         assert(packet->buf);
@@ -450,7 +460,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
         struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
         memcpy(outgoing+14, arp_packet, packet->len-14);
-
         sr_send_packet(sr, (uint8_t*)outgoing, packet->len, packet->iface);
       }
       req->sent = curtime;
