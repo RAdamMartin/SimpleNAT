@@ -153,7 +153,7 @@ uint8_t* sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int 
   uint8_t* icmp_packet;
 
 
-  if (sr_in_if_list(sr,ipHeader->ip_dst) != 0){
+  if (sr_get_iface(sr,ipHeader->ip_dst) != NULL){
     printf("unimplemented fwd\n");
   }
   else if(currentChecksum==ipHeader->ip_sum && len>19){
@@ -264,9 +264,3 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
       return NULL;
     }
 }
-
-
-
-
-
-
