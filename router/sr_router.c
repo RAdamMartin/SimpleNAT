@@ -90,50 +90,38 @@ void sr_handlepacket(struct sr_instance* sr,
     uint16_t package_type = ethertype(ether_packet);
     enum sr_ethertype arp = ethertype_arp;
     enum sr_ethertype ip = ethertype_ip;
-    uint8_t* sr_processed_packet;
+
     if(package_type==arp){
       /* ARP protocol */
       printf("ARP! \\o/! \n");
-      sr_processed_packet =  sr_handleARPpacket(sr, ether_packet+14, len-14, iface);
+      sr_handleARPpacket(sr, ether_packet, len, iface);
     }else if(package_type==ip){
       /* IP protocol */
       printf("IP! \\o/! \n");
-      /*WRONG*/
-      sr_processed_packet = sr_handleIPpacket(sr, ether_packet+14,len-14, iface);
+      sr_handleIPpacket(sr, ether_packet+14,len-14, iface);
     }else{
       /* drop package */
        printf("bad protocol! BOO! \n");
-    }
-    if (sr_processed_packet){
-      /*copy the new packet content*/
-      struct sr_ethernet_hdr* outgoing = (struct sr_ethernet_hdr*)ether_packet;
-      memcpy(outgoing+14,sr_processed_packet,len-14);
-      /*swapping outgoing and incoming addr*/
-      memcpy(outgoing->ether_dhost, outgoing->ether_shost,6);
-      memcpy(outgoing->ether_shost, iface->addr,6);
-
-      sr_send_packet(sr,(uint8_t*)outgoing,len,interface);
-      free(sr_processed_packet);
     }
     free(ether_packet);
   }
 }/* end sr_ForwardPacket */
 
-uint8_t* sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len, struct sr_if * iface){
-/*  assert(packet);
-  uint8_t* ip_packet = malloc(len);
-  memcpy(ip_packet,packet,len);
-  struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) ip_packet;  
-  uint16_t currentChecksum = cksum(ip_packet,len);
+void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len, struct sr_if * iface){
+  assert(packet);
+  struct sr_ethernet_hdr* eth_packet = (struct sr_ethernet_hdr*) packet;
+  uint8_t* ip_packet = packet+14;
+  struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) (ip_packet);  
+  uint16_t currentChecksum = cksum(ip_packet,len-14);
   uint8_t* icmp_packet;
 
 
-  if (sr_get_iface(sr,ipHeader->ip_dst) != NULL){
-    printf("unimplemented fwd\n");
+  if (sr_get_iface(sr,ipHeader->ip_dst) == NULL){
+    ip_packet = NULL;
   }
-  else if(currentChecksum==ipHeader->ip_sum && len>19){
+  else if(currentChecksum==ipHeader->ip_sum && len>34){
     if(ipHeader->ip_tos==6 || ipHeader->ip_tos==17){
-      icmp_packet = createICMP(3,3,packet+20,len-20);
+      icmp_packet = createICMP(3,3,ip_packet+20,len-34);
       memcpy(ip_packet+20,icmp_packet,32);
       free(icmp_packet);
       uint32_t src = ipHeader->ip_src;
@@ -141,7 +129,6 @@ uint8_t* sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int 
       ipHeader->ip_dst = src;
       ipHeader->ip_ttl = 20;
       ipHeader->ip_sum = cksum(ip_packet,20);
-      return ip_packet;
     }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){
       printf("BOO\n");
 	    struct sr_icmp_hdr * icmp_header = (struct sr_icmp_hdr *) (ipHeader + 20);
@@ -154,19 +141,23 @@ uint8_t* sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int 
 	      ipHeader->ip_dst = src;
 	      ipHeader->ip_ttl = 20;
 	      ipHeader->ip_sum = cksum(ip_packet,20);
-	      return ip_packet; 
 	    }
+    } else {
+      ip_packet = NULL;
     }
   }
-  free(ip_packet);*/
-  return NULL;
+  if(ip_packet){
+    memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
+    memcpy(eth_packet->ether_shost, iface->addr,6);
+
+    sr_send_packet(sr,packet,len,iface->name);
+  }
 }
 
-uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int len, struct sr_if * iface) {
+void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int len, struct sr_if * iface) {
     assert(packet);
-    uint8_t* arp_packet = malloc(len);
-    memcpy(arp_packet,packet,len);
-    struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *) (arp_packet);
+    struct sr_ethernet_hdr* eth_packet = (struct sr_ethernet_hdr*) packet;
+    struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *) (packet+14);
 
     enum sr_arp_opcode request = arp_op_request;
     enum sr_arp_opcode reply = arp_op_reply;
@@ -180,15 +171,18 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
         printf("ARP Request \n");
         /* found an ip->mac mapping. send a reply to the requester's MAC addr */
         if (interface){
-          arpHeader->ar_op = reply;
+          arpHeader->ar_op = ntohs(reply);
           uint32_t temp = arpHeader->ar_sip;
           arpHeader->ar_sip = arpHeader->ar_tip;
           arpHeader->ar_tip = temp;
-          return arp_packet;
-        }
-        /* drop the request */
-        else {
-          return NULL;
+          memcpy(arpHeader->ar_tha, arpHeader->ar_sha,6);
+          memcpy(arpHeader->ar_sha, iface->addr,6);
+
+          /*swapping outgoing and incoming addr*/
+          memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
+          memcpy(eth_packet->ether_shost, iface->addr,6);
+          print_hdrs(packet, len);
+          sr_send_packet(sr,(uint8_t*)eth_packet,len,iface->name);
         }
     }
     /* handle an arp reply */
@@ -203,11 +197,8 @@ uint8_t* sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned in
           struct sr_ethernet_hdr * outgoing = (struct sr_ethernet_hdr *)req_packet->buf;
 
           memcpy(outgoing->ether_dhost, entry->mac,6);
-
           sr_send_packet(sr,(uint8_t*)outgoing,len,iface->name);
         }
       }
-      free(arp_packet);
-      return NULL;
     }
 }
