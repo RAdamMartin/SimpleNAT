@@ -98,7 +98,7 @@ void sr_handlepacket(struct sr_instance* sr,
     }else if(package_type==ip){
       /* IP protocol */
       printf("IP! \\o/! \n");
-      sr_handleIPpacket(sr, ether_packet+14,len-14, iface);
+      sr_handleIPpacket(sr, ether_packet,len, iface);
     }else{
       /* drop package */
        printf("bad protocol! BOO! \n");
@@ -112,14 +112,19 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
   struct sr_ethernet_hdr* eth_packet = (struct sr_ethernet_hdr*) packet;
   uint8_t* ip_packet = packet+14;
   struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) (ip_packet);  
-  uint16_t currentChecksum = cksum(ip_packet,len-14);
+  uint16_t incm_cksum = ipHeader->ip_sum;
+  ipHeader->ip_sum = 0;
+  uint16_t currentChecksum = cksum(ip_packet,20);
   uint8_t* icmp_packet;
 
-
-  if (sr_get_iface(sr,ipHeader->ip_dst) == NULL){
+  print_hdrs(packet,len);
+  if (sr_get_interface_from_ip(sr,ntohl(ipHeader->ip_dst)) == NULL){
+    printf("IP FWD\n");
+    print_addr_ip_int(ntohl(ipHeader->ip_dst));
     ip_packet = NULL;
   }
-  else if(currentChecksum==ipHeader->ip_sum && len>34){
+  else if(currentChecksum==incm_cksum && len>34){
+    printf("IP TCP/UDP\n");
     if(ipHeader->ip_tos==6 || ipHeader->ip_tos==17){
       icmp_packet = createICMP(3,3,ip_packet+20,len-34);
       memcpy(ip_packet+20,icmp_packet,32);
@@ -130,10 +135,12 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       ipHeader->ip_ttl = 20;
       ipHeader->ip_sum = cksum(ip_packet,20);
     }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){
-      printf("BOO\n");
+      printf("IP Ping\n");
 	    struct sr_icmp_hdr * icmp_header = (struct sr_icmp_hdr *) (ipHeader + 20);
+      incm_cksum = icmp_header->icmp_sum;
+      icmp_header->icmp_sum = 0;
 	    currentChecksum = cksum(icmp_header,2);
-	    if(currentChecksum == icmp_header->icmp_sum && icmp_header->icmp_type != 8 && icmp_header->icmp_code != 0) {
+	    if(currentChecksum == incm_cksum && icmp_header->icmp_type != 8 && icmp_header->icmp_code != 0) {
 	      icmp_header->icmp_type = 0;
 	      icmp_header->icmp_sum = cksum(icmp_header,2);
 	      uint32_t src = ipHeader->ip_src;
@@ -143,8 +150,14 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 	      ipHeader->ip_sum = cksum(ip_packet,20);
 	    }
     } else {
+      printf("IP Bad\n");
       ip_packet = NULL;
     }
+  }
+  else{
+      printf("IP INVALID\n");
+      printf("%d != %d OR %d <= 34\n",currentChecksum,ipHeader->ip_sum, len);
+      ip_packet = NULL;
   }
   if(ip_packet){
     memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
@@ -181,12 +194,12 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
           /*swapping outgoing and incoming addr*/
           memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
           memcpy(eth_packet->ether_shost, iface->addr,6);
-          print_hdrs(packet, len);
           sr_send_packet(sr,(uint8_t*)eth_packet,len,iface->name);
         }
     }
     /* handle an arp reply */
     else {
+      printf("ARP Reply \n");
       entry = sr_arpcache_lookup(&sr->cache, arpHeader->ar_sip);
       if(entry){req = sr_arpcache_insert(&sr->cache, entry->mac, entry->ip);}
       struct sr_packet *req_packet = NULL;
