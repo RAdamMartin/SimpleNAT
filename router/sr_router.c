@@ -126,10 +126,12 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     ip_packet = NULL;
   }
   else if(currentChecksum==incm_cksum && len>34){
-    if(ipHeader->ip_tos==6 || ipHeader->ip_tos==17){
+    if(ipHeader->ip_p==6 || ipHeader->ip_p==17){
       printf("IP TCP/UDP\n");
       icmp_packet = createICMP(3,3,ip_packet+20,len-34);
       memcpy(ip_packet+20,icmp_packet,32);
+      ipHeader->ip_p = 1;
+      ipHeader->ip_len = htons(24+(len<28?len:28));
       free(icmp_packet);
     }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){
       printf("IP Ping\n");
