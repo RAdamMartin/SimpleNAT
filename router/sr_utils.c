@@ -191,12 +191,13 @@ uint8_t *createICMP(uint8_t type, uint8_t code, uint8_t *packet, unsigned int si
     sr_icmp_t3_hdr_t *hdr = (sr_icmp_t3_hdr_t*) ret;
     hdr->icmp_type = type;
     hdr->icmp_code = code;
-    hdr->icmp_sum = cksum(ret,2);
+    hdr->icmp_sum = 0;
     uint16_t num = 28;
     if (size < num) {
       num = size;
     }
     memcpy(hdr->data,packet,num);
+    hdr->icmp_sum = cksum(ret,num + 4);
   } else {
     fprintf(stderr, "ICMP for type %d is not implemented \n", type);
   }
