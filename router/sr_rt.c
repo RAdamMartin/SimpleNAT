@@ -196,6 +196,7 @@ struct sr_rt* sr_find_routing_entry(struct sr_instance* sr, char * addr)
     
     while(rt_walker->next)
     {
+        printf("%s == %s = %d\n",inet_ntoa(rt_walker->dest),addr,strcmp(inet_ntoa(rt_walker->dest),addr));
         if(strcmp(inet_ntoa(rt_walker->dest),addr) == 0){
             return rt_walker;
         }
@@ -205,3 +206,18 @@ struct sr_rt* sr_find_routing_entry(struct sr_instance* sr, char * addr)
     return NULL;
 
 } /* -- sr_find_routing_entry -- */
+
+/*---------------------------------------------------------------------
+ * Method:
+ *
+ *---------------------------------------------------------------------*/
+
+struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
+{
+  char addr[33]; 
+  memset(addr,'\0',33);
+  sprintf(addr, "%d.%d.%d.%d", ip >> 24, (ip << 8) >> 24, (ip << 16) >> 24, (ip << 24) >> 24);
+  printf("%s\n",addr);
+  return sr_find_routing_entry(sr, addr);
+} /* -- sr_find_routing_entry -- */
+
