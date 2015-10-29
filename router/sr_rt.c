@@ -22,6 +22,9 @@
 #include "sr_rt.h"
 #include "sr_router.h"
 
+ /*DEBUG*/
+#include "sr_utils.h"
+
 /*---------------------------------------------------------------------
  * Method:
  *
@@ -213,9 +216,39 @@ struct sr_rt* sr_find_routing_entry(struct sr_instance* sr, char * addr)
 
 struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
 {
-  char addr[33]; 
+  /*char addr[33]; 
   memset(addr,'\0',33);
   sprintf(addr, "%d.%d.%d.%d", ip >> 24, (ip << 8) >> 24, (ip << 16) >> 24, (ip << 24) >> 24);
-  return sr_find_routing_entry(sr, addr);
+  return sr_find_routing_entry(sr, addr);*/
+  unsigned long best_match = 0;
+  struct sr_rt* rt = NULL;
+  struct sr_rt* rt_walker = 0;
+
+  if(sr->routing_table == 0)
+  {
+    printf(" *warning* Routing table empty \n");
+    return NULL;
+  }
+
+  rt_walker = sr->routing_table;
+  printf("CALLED FIND\n");
+  print_addr_ip_int(htonl(ip));
+  while(rt_walker)
+  {
+    /*sr_print_routing_entry(rt_walker);
+    print_addr_ip_int(htonl(rt_walker->dest.s_addr));
+    print_addr_ip_int(htonl(rt_walker->mask.s_addr));
+    printf("%lu && %lu = %lu\n",(unsigned long)htonl(rt_walker->dest.s_addr), (unsigned long)htonl(ip), (unsigned long)htonl(rt_walker->dest.s_addr)&htonl(ip));
+*/
+    unsigned long prefix = htonl(rt_walker->dest.s_addr)&htonl(rt_walker->mask.s_addr);
+    unsigned long match = prefix&htonl(ip);
+    if (match > best_match && match == prefix){
+        best_match = match;
+        rt = rt_walker;
+        printf("Found rt match!!\n");
+    }
+    rt_walker = rt_walker->next; 
+  }
+  return rt;
 } /* -- sr_find_routing_entry -- */
 

@@ -127,11 +127,12 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     /* check cache for ip->mac mapping for next hop */
     struct sr_arpentry *entry;
     entry = sr_arpcache_lookup(&sr->cache, ipHeader->ip_dst);
+    struct sr_rt * rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ipHeader->ip_dst);
 
     /* found next hop. send packet */
-    if (entry) {
+    if (entry && rt) {
       printf("found next hop\n");
-      memcpy(ip_packet+14, packet, len);
+      iface = sr_get_interface(sr, rt->interface);
       ipHeader->ip_ttl = ipHeader->ip_ttl - 1;
       ipHeader->ip_sum = cksum(ip_packet,20);
 
@@ -140,15 +141,11 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
       sr_send_packet(sr,packet,len,iface->name);
       free(entry);
-    }
-
-    /* send an arp request to find out what interface to send packet out of */
-    else {
+    } else { /* send an arp request to find out what interface to send packet out of */
       struct sr_arpreq *req;
       sr_arpcache_insert(&(sr->cache), iface->addr, ipHeader->ip_src);
       req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
       handle_arpreq(sr, req);
-      ip_packet = NULL;
     }
   }
   else if(currentChecksum==incm_cksum){
@@ -177,24 +174,24 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       printf("IP Bad\n");
       ip_packet = NULL;
     }
+    if(ip_packet){
+      printf("Sending IP resp \n");
+      uint32_t src = ipHeader->ip_src;
+      ipHeader->ip_src = ipHeader->ip_dst;
+      ipHeader->ip_dst = src;
+      ipHeader->ip_ttl = 64;
+      ipHeader->ip_sum = cksum(ip_packet,20);
+
+      memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
+      memcpy(eth_packet->ether_shost, iface->addr,6);
+
+      sr_send_packet(sr,packet,len,iface->name);
+    }
   }
   else{
       printf("IP INVALID\n");
       printf("%d != %d OR %d <= 34\n",currentChecksum,ipHeader->ip_sum, len);
       ip_packet = NULL;
-  }
-  if(ip_packet){
-    printf("Sending IP resp \n");
-    uint32_t src = ipHeader->ip_src;
-    ipHeader->ip_src = ipHeader->ip_dst;
-    ipHeader->ip_dst = src;
-    ipHeader->ip_ttl = 64;
-    ipHeader->ip_sum = cksum(ip_packet,20);
-
-    memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
-    memcpy(eth_packet->ether_shost, iface->addr,6);
-
-    sr_send_packet(sr,packet,len,iface->name);
   }
 }
 
@@ -250,5 +247,6 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
         }
       }
       pthread_mutex_unlock(&(sr->cache.lock));
+      sr_arpcache_insert(&(sr->cache),arpHeader->ar_sha,arpHeader->ar_sip);
     }
 }
