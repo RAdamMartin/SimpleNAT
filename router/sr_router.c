@@ -83,7 +83,7 @@ void sr_handlepacket(struct sr_instance* sr,
   
   /* Ethernet Protocol */
   /*TODO: Sanity Check Packet*/
-  if(len>=42){
+  if(len>=60){
     uint8_t* ether_packet = malloc(len);
     memcpy(ether_packet,packet,len);
 
@@ -149,7 +149,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
       req = sr_arpcache_queuereq(&sr->cache, ipHeader->ip_dst, packet, len, iface->name);
       handle_arpreq(sr, req);
-      
+      ip_packet = NULL;
     }
   }
   else if(currentChecksum==incm_cksum && len>60){

@@ -193,8 +193,8 @@ uint8_t *createICMP(uint8_t type, uint8_t code, uint8_t *packet, unsigned int si
     ret = malloc(sizeof(sr_icmp_t3_hdr_t)+num);
     memset(ret,0,sizeof(sr_icmp_t3_hdr_t)+num);
     sr_icmp_t3_hdr_t *hdr = (sr_icmp_t3_hdr_t*) ret;
-    hdr->icmp_type = type;
-    hdr->icmp_code = code;
+    hdr->icmp_type = htons(type);
+    hdr->icmp_code = htons(code);
     hdr->icmp_sum = 0;
     memcpy(hdr->data,packet,num);
     hdr->icmp_sum = cksum(ret,num + 4);

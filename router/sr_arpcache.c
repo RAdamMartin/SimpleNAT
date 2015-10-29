@@ -393,45 +393,47 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
     
     /* send icmp host unreachable to source addr of all pkts waiting on this request  */
     if (req->times_sent > 5) {
+      printf("ARP REQ Timeout\n");
       pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
-
-        /* create ip packet containing icmp host unreachable */
         assert(packet->buf);
-        uint8_t *ip_packet = malloc(60);
+        struct sr_ip_hdr *ipDropped = (struct sr_ip_hdr *) (packet + 14); 
 
-        struct sr_ip_hdr *ipHeader = (struct sr_ip_hdr *) ip_packet;  
+        struct sr_if* iface;
+        iface = sr_get_interface(sr, packet->iface);
+
+        uint8_t *outgoing = malloc(100);
+        struct sr_ethernet_hdr *ethHeader = (struct sr_ethernet_hdr *)outgoing;
+        struct sr_ip_hdr *ipHeader = (struct sr_ip_hdr *) (outgoing + 14);  
         
+        /* Get ICMP Packet*/
         uint8_t* icmp_packet;
-        icmp_packet = createICMP(3, 0, packet->buf+20, packet->len-20);
-        memcpy(ip_packet+20, icmp_packet, 32);
-
-        printf("printing icmp headed in req > 5\n");
-        print_hdrs(icmp_packet, packet->len-20);
-
+        icmp_packet = createICMP(3, 0, packet->buf+34, packet->len-34);
+        memcpy(ipHeader+20, icmp_packet, sizeof(sr_icmp_t3_hdr_t));
         free(icmp_packet);
 
-        ipHeader->ip_src = ipHeader->ip_dst;
-        ipHeader->ip_dst = req->ip;
-        ipHeader->ip_ttl = 20;
-        ipHeader->ip_sum = cksum(ip_packet,20);
+        /*Setup IP Header*/
+        ipHeader->ip_hl = 5;
+        ipHeader->ip_v = 4;
+        ipHeader->ip_tos = 0;
+        ipHeader->ip_len = sizeof(sr_icmp_t3_hdr_t)+20;
+        ipHeader->ip_id = ipDropped->ip_id;
+        ipHeader->ip_dst = ipDropped->ip_src;
+        ipHeader->ip_src = iface->ip;
+        ipHeader->ip_off = 0;
+        ipHeader->ip_ttl = 64;
+        ipHeader->ip_sum = 0;
         ipHeader->ip_p = 1;
         ipHeader->ip_len = htons(24+(packet->len<28?packet->len:28));
+        ipHeader->ip_sum = cksum((uint8_t *)ipHeader,20);        
 
-        /* packet created.  send to source addr */
-        struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
-        memcpy(outgoing+14, ip_packet, packet->len-14);
-        
-        uint8_t destination[6];
-        memcpy(destination,outgoing->ether_shost,6);
-        memcpy(outgoing->ether_dhost, &destination,6);
+        /*Setup Ethernet Header*/
+        memcpy(ethHeader->ether_dhost, ethHeader->ether_shost,6);
+        memcpy(ethHeader->ether_shost, iface->addr, 6);
+        ethHeader->ether_type = htons(0x0800);
 
-        struct sr_if* iface = 0;
-        iface = sr_get_interface(sr, packet->iface);
-        memcpy(outgoing->ether_shost, iface->addr, 6);
-
-        printf("icmp?!?\n");
-        sr_send_packet(sr, (uint8_t*)outgoing, packet->len, packet->iface);
+        print_hdrs(outgoing, 38);
+        sr_send_packet(sr, (uint8_t*)ethHeader, packet->len, packet->iface);
       }
       pthread_mutex_unlock(&(cache->lock));
       sr_arpreq_destroy(&sr->cache, req);
