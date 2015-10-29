@@ -443,31 +443,38 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       pthread_mutex_lock(&(cache->lock));
       packet = req->packets;
       assert(packet->buf);
-      struct sr_arp_hdr *arpHeader = (struct sr_arp_hdr *) packet->buf;  
+      /*struct sr_ethernet_hdr *ethIncoming = (struct sr_ethernet_hdr *)(packet->buf);*/
+      struct sr_ip_hdr * ipIncoming = (struct sr_ip_hdr *)((packet->buf) + 14);
+
+      uint8_t * outgoing = (uint8_t*)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t));
+      struct sr_ethernet_hdr *ethHeader = (struct sr_ethernet_hdr *) outgoing;
+      struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *)(outgoing + sizeof(sr_ethernet_hdr_t));
 
       /* set op code to request */
-      arpHeader->ar_op = 0x0001;
-      int pos = 0;
-      for (; pos < ETHER_ADDR_LEN; pos++) {
-        arpHeader->ar_tha[pos] = 255;
+      arpHeader->ar_hrd = 0x0001; 
+      arpHeader->ar_op = htons(1);
+      arpHeader->ar_hln = 0x0006; 
+      arpHeader->ar_pln = 0x0004;
+      memset(arpHeader->ar_tha, 255, 6);
+      arpHeader->ar_tip = ipIncoming->ip_dst;
+
+      struct sr_if* if_walker = 0;
+      if_walker = sr->if_list;
+
+      while(if_walker)
+      {
+        if(strncmp(if_walker->name,packet->iface,sr_IFACE_NAMELEN) != 0){
+          arpHeader->ar_sip = if_walker->ip;
+          memcpy(arpHeader->ar_sha, if_walker->addr, 6);
+          memcpy(ethHeader->ether_shost, if_walker->addr, 6);
+          memset(ethHeader->ether_dhost, 255,6);
+          printf("Sending ARP Req\n");
+          sr_send_packet(sr, outgoing, packet->len, if_walker->name);
+        }
+        if_walker = if_walker->next;
       }
-      uint32_t temp = arpHeader->ar_sip;
-      arpHeader->ar_sip = arpHeader->ar_tip;
-      arpHeader->ar_tip = temp;
 
-      struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
-      memcpy(outgoing+14, packet->buf, packet->len-14);
-
-      struct sr_if* iface = 0;
-      iface = sr_get_interface(sr, packet->iface);
-      
-      memcpy(outgoing->ether_shost, iface->addr, 6);
-      memcpy(outgoing->ether_dhost, arpHeader->ar_tha,6);
-
-      print_hdr_eth((uint8_t*)outgoing);
-
-      sr_send_packet(sr, (uint8_t*)outgoing, packet->len, iface->name);
-      
+      free(outgoing);
       req->sent = curtime;
       req->times_sent++;
       pthread_mutex_unlock(&(cache->lock));
