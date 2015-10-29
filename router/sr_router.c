@@ -242,7 +242,7 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
             memcpy(outEther->ether_dhost, eth_packet->ether_shost,6);
 
             struct sr_ip_hdr * outIP = (struct sr_ip_hdr *)(req_packet->buf+14);
-            outIP->ip_src = iface->ip,6;
+            outIP->ip_ttl = outIP->ip_ttl-1;
             
             sr_send_packet(sr,req_packet->buf,len,iface->name);
             sr_arpreq_destroy(&(sr->cache), req);
