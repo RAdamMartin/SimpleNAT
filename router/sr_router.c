@@ -141,9 +141,9 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
       sr_send_packet(sr,packet,len,iface->name);
       free(entry);
-    } else { /* send an arp request to find out what interface to send packet out of */
+    } else if (rt) { /* send an arp request to find out what interface to send packet out of */
       struct sr_arpreq *req;
-      sr_arpcache_insert(&(sr->cache), iface->addr, ipHeader->ip_src);
+      sr_arpcache_insert(&(sr->cache), eth_packet->ether_shost, ipHeader->ip_src);
       req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
       handle_arpreq(sr, req);
     }
@@ -233,17 +233,22 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
 
       for (req = sr->cache.requests; req != NULL; req = req->next){
         if(req->ip == arpHeader->ar_sip){
-          for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
-            struct sr_ethernet_hdr * outEther = (struct sr_ethernet_hdr *)req_packet->buf;
-            memcpy(outEther->ether_shost, iface->addr,6);
-            memcpy(outEther->ether_dhost, eth_packet->ether_shost,6);
+          struct sr_rt * rt = (struct sr_rt *)sr_find_routing_entry_int(sr, req->ip);
+          if (rt) {
+            iface = sr_get_interface(sr, rt->interface);
+            for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
+              struct sr_ethernet_hdr * outEther = (struct sr_ethernet_hdr *)req_packet->buf;
+              memcpy(outEther->ether_shost, iface->addr,6);
+              memcpy(outEther->ether_dhost, eth_packet->ether_shost,6);
 
-            struct sr_ip_hdr * outIP = (struct sr_ip_hdr *)(req_packet->buf+14);
-            outIP->ip_ttl = outIP->ip_ttl-1;
-            
-            sr_send_packet(sr,req_packet->buf,len,iface->name);
-            sr_arpreq_destroy(&(sr->cache), req);
+              struct sr_ip_hdr * outIP = (struct sr_ip_hdr *)(req_packet->buf+14);
+              outIP->ip_ttl = outIP->ip_ttl-1;
+              
+              sr_send_packet(sr,req_packet->buf,len,iface->name);
+              sr_arpreq_destroy(&(sr->cache), req);
+            }
           }
+          break;
         }
       }
       pthread_mutex_unlock(&(sr->cache.lock));
