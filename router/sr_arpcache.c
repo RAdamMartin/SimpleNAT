@@ -452,8 +452,9 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *)(outgoing + sizeof(sr_ethernet_hdr_t));
 
       /* set ARPHeader to request */
-      arpHeader->ar_hrd = 0x0001; 
-      arpHeader->ar_op = htons(1);
+      arpHeader->ar_hrd = htons(0x0001); 
+      arpHeader->ar_pro = htons(0x800); 
+      arpHeader->ar_op = htons(0x0001);
       arpHeader->ar_hln = 0x0006; 
       arpHeader->ar_pln = 0x0004;
       memset(arpHeader->ar_tha, 255, 6);

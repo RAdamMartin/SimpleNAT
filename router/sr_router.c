@@ -237,6 +237,7 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
       
       if (req) {
         pthread_mutex_lock(&(sr->cache.lock));
+        printf("Clearing queue\n");
         for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
           assert(req_packet->buf);
           struct sr_ethernet_hdr * outgoing = (struct sr_ethernet_hdr *)req_packet->buf;
