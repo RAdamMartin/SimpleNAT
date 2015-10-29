@@ -185,41 +185,8 @@ void sr_print_routing_entry(struct sr_rt* entry)
  *
  *---------------------------------------------------------------------*/
 
-struct sr_rt* sr_find_routing_entry(struct sr_instance* sr, char * addr)
-{
-    struct sr_rt* rt_walker = 0;
-
-    if(sr->routing_table == 0)
-    {
-        printf(" *warning* Routing table empty \n");
-        return NULL;
-    }
-
-    rt_walker = sr->routing_table;
-    
-    while(rt_walker->next)
-    {
-        if(strcmp(inet_ntoa(rt_walker->dest),addr) == 0){
-            return rt_walker;
-        }
-        rt_walker = rt_walker->next; 
-    }
-
-    return NULL;
-
-} /* -- sr_find_routing_entry -- */
-
-/*---------------------------------------------------------------------
- * Method:
- *
- *---------------------------------------------------------------------*/
-
 struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
 {
-  /*char addr[33]; 
-  memset(addr,'\0',33);
-  sprintf(addr, "%d.%d.%d.%d", ip >> 24, (ip << 8) >> 24, (ip << 16) >> 24, (ip << 24) >> 24);
-  return sr_find_routing_entry(sr, addr);*/
   unsigned long best_match = 0;
   struct sr_rt* rt = NULL;
   struct sr_rt* rt_walker = 0;
