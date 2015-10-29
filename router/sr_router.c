@@ -83,7 +83,8 @@ void sr_handlepacket(struct sr_instance* sr,
   
   /* Ethernet Protocol */
   /*TODO: Sanity Check Packet*/
-  if(len>=60){
+  if(len>=34){
+    print_hdrs(packet,len);
     uint8_t* ether_packet = malloc(len);
     memcpy(ether_packet,packet,len);
 
@@ -113,15 +114,13 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
   uint8_t* ip_packet = packet+sizeof(sr_ethernet_hdr_t);
   struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) (ip_packet);  
 
-  print_hdrs(packet,len);
-
   uint16_t incm_cksum = ipHeader->ip_sum;
   ipHeader->ip_sum = 0;
   uint16_t currentChecksum = cksum(ip_packet,20);
   uint8_t* icmp_packet;
 
   /* if the destination address is not one of my routers interfaces */
-  if (currentChecksum==incm_cksum && len>60 && sr_get_interface_from_ip(sr,ntohl(ipHeader->ip_dst)) == NULL){
+  if (currentChecksum==incm_cksum && sr_get_interface_from_ip(sr,ntohl(ipHeader->ip_dst)) == NULL){
     printf("IP FWD\n");
     print_addr_ip_int(ntohl(ipHeader->ip_dst));
 
@@ -152,7 +151,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       ip_packet = NULL;
     }
   }
-  else if(currentChecksum==incm_cksum && len>60){
+  else if(currentChecksum==incm_cksum){
     if(ipHeader->ip_p==6 || ipHeader->ip_p==17){
       printf("IP TCP/UDP\n");
       icmp_packet = createICMP(3,3,ip_packet+20,len-34);
@@ -195,7 +194,6 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
     memcpy(eth_packet->ether_shost, iface->addr,6);
 
-    print_hdrs(packet,len);
     sr_send_packet(sr,packet,len,iface->name);
   }
 }
@@ -233,11 +231,12 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
     /* handle an arp reply */
     else {
       printf("ARP Reply \n");
+      struct sr_packet *req_packet = NULL;
       entry = sr_arpcache_lookup(&sr->cache, arpHeader->ar_sip);
       if(entry){req = sr_arpcache_insert(&sr->cache, entry->mac, entry->ip);}
-      struct sr_packet *req_packet = NULL;
-     
+      
       if (req) {
+        pthread_mutex_lock(&(sr->cache.lock));
         for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
           assert(req_packet->buf);
           struct sr_ethernet_hdr * outgoing = (struct sr_ethernet_hdr *)req_packet->buf;
@@ -245,6 +244,8 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
           memcpy(outgoing->ether_dhost, entry->mac,6);
           sr_send_packet(sr,(uint8_t*)outgoing,len,iface->name);
         }
+        pthread_mutex_unlock(&(sr->cache.lock));
+        sr_arpreq_destroy(&(sr->cache), req);
       }
     }
 }

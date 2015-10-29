@@ -432,7 +432,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         memcpy(ethHeader->ether_shost, iface->addr, 6);
         ethHeader->ether_type = htons(0x0800);
 
-        print_hdrs(outgoing, 38);
         sr_send_packet(sr, (uint8_t*)ethHeader, packet->len, packet->iface);
       }
       pthread_mutex_unlock(&(cache->lock));
@@ -452,13 +451,17 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       struct sr_ethernet_hdr *ethHeader = (struct sr_ethernet_hdr *) outgoing;
       struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *)(outgoing + sizeof(sr_ethernet_hdr_t));
 
-      /* set op code to request */
+      /* set ARPHeader to request */
       arpHeader->ar_hrd = 0x0001; 
       arpHeader->ar_op = htons(1);
       arpHeader->ar_hln = 0x0006; 
       arpHeader->ar_pln = 0x0004;
       memset(arpHeader->ar_tha, 255, 6);
       arpHeader->ar_tip = ipIncoming->ip_dst;
+
+      /* set Ethernet Header*/
+      ethHeader->ether_type = htons(0x0806);
+      memset(ethHeader->ether_dhost, 255,6);
 
       struct sr_if* if_walker = 0;
       if_walker = sr->if_list;
@@ -469,7 +472,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
           arpHeader->ar_sip = if_walker->ip;
           memcpy(arpHeader->ar_sha, if_walker->addr, 6);
           memcpy(ethHeader->ether_shost, if_walker->addr, 6);
-          memset(ethHeader->ether_dhost, 255,6);
           printf("Sending ARP Req\n");
           sr_send_packet(sr, outgoing, packet->len, if_walker->name);
         }
