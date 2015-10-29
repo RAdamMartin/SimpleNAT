@@ -131,6 +131,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
     /* found next hop. send packet */
     if (entry) {
+      printf("found next hop\n");
       memcpy(ip_packet+14, packet, len);
       ipHeader->ip_src = iface->ip;
       ipHeader->ip_dst = entry->ip;
@@ -150,6 +151,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
       req = sr_arpcache_queuereq(&sr->cache, ipHeader->ip_dst, packet, len, iface->name);
       handle_arpreq(sr, req);
+      
     }
   }
   else if(currentChecksum==incm_cksum && len>34){
@@ -214,7 +216,7 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
 
     /* handle an arp request.*/
     if (ntohs(arpHeader->ar_op) == request) {
-        printf("ARP Request \n");
+        printf("ARP Request in heeereee \n");
         /* found an ip->mac mapping. send a reply to the requester's MAC addr */
         if (interface){
           arpHeader->ar_op = ntohs(reply);

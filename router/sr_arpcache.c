@@ -405,12 +405,18 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         uint8_t* icmp_packet;
         icmp_packet = createICMP(3, 0, packet->buf+20, packet->len-20);
         memcpy(ip_packet+20, icmp_packet, 32);
-        
-        uint32_t src = ipHeader->ip_src;
+
+        printf("printing icmp headed in req > 5\n");
+        print_hdrs(icmp_packet, packet->len-20);
+
+        free(icmp_packet);
+
         ipHeader->ip_src = ipHeader->ip_dst;
-        ipHeader->ip_dst = src;
+        ipHeader->ip_dst = req->ip;
         ipHeader->ip_ttl = 20;
         ipHeader->ip_sum = cksum(ip_packet,20);
+        ipHeader->ip_p = 1;
+        ipHeader->ip_len = htons(24+(packet->len<28?packet->len:28));
 
         /* packet created.  send to source addr */
         struct sr_ethernet_hdr *outgoing = (struct sr_ethernet_hdr *)packet->buf;
@@ -426,8 +432,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
         printf("icmp?!?\n");
         sr_send_packet(sr, (uint8_t*)outgoing, packet->len, packet->iface);
-
-        free(icmp_packet);
       }
       pthread_mutex_unlock(&(cache->lock));
       sr_arpreq_destroy(&sr->cache, req);
@@ -456,7 +460,9 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
       struct sr_if* iface = 0;
       iface = sr_get_interface(sr, packet->iface);
+      
       memcpy(outgoing->ether_shost, iface->addr, 6);
+      memcpy(outgoing->ether_dhost, arpHeader->ar_tha,6);
 
       print_hdr_eth((uint8_t*)outgoing);
 
