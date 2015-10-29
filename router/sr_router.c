@@ -145,8 +145,8 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     /* send an arp request to find out what interface to send packet out of */
     else {
       struct sr_arpreq *req;
-
-      req = sr_arpcache_queuereq(&sr->cache, ipHeader->ip_dst, packet, len, iface->name);
+      sr_arpcache_insert(&(sr->cache), iface->addr, ipHeader->ip_src);
+      req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
       handle_arpreq(sr, req);
       ip_packet = NULL;
     }
@@ -206,8 +206,6 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
     enum sr_arp_opcode request = arp_op_request;
     enum sr_arp_opcode reply = arp_op_reply;
 
-    struct sr_arpentry *entry = NULL;
-    struct sr_arpreq *req = NULL;
     struct sr_if *interface = sr_get_interface_from_ip(sr, htonl(arpHeader->ar_tip));
 
     /* handle an arp request.*/
@@ -232,21 +230,25 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
     else {
       printf("ARP Reply \n");
       struct sr_packet *req_packet = NULL;
-      entry = sr_arpcache_lookup(&sr->cache, arpHeader->ar_sip);
-      if(entry){req = sr_arpcache_insert(&sr->cache, entry->mac, entry->ip);}
-      
-      if (req) {
-        pthread_mutex_lock(&(sr->cache.lock));
-        printf("Clearing queue\n");
-        for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
-          assert(req_packet->buf);
-          struct sr_ethernet_hdr * outgoing = (struct sr_ethernet_hdr *)req_packet->buf;
+      struct sr_arpreq *req = NULL;
+      pthread_mutex_lock(&(sr->cache.lock));   
+      printf("Clearing queue\n");
 
-          memcpy(outgoing->ether_dhost, entry->mac,6);
-          sr_send_packet(sr,(uint8_t*)outgoing,len,iface->name);
+      for (req = sr->cache.requests; req != NULL; req = req->next){
+        if(req->ip == arpHeader->ar_sip){
+          for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
+            struct sr_ethernet_hdr * outEther = (struct sr_ethernet_hdr *)req_packet->buf;
+            memcpy(outEther->ether_shost, iface->addr,6);
+            memcpy(outEther->ether_dhost, eth_packet->ether_shost,6);
+
+            struct sr_ip_hdr * outIP = (struct sr_ip_hdr *)(req_packet->buf+14);
+            outIP->ip_src = iface->ip,6;
+            
+            sr_send_packet(sr,req_packet->buf,len,iface->name);
+            sr_arpreq_destroy(&(sr->cache), req);
+          }
         }
-        pthread_mutex_unlock(&(sr->cache.lock));
-        sr_arpreq_destroy(&(sr->cache), req);
       }
+      pthread_mutex_unlock(&(sr->cache.lock));
     }
 }
