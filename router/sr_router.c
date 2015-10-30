@@ -84,7 +84,7 @@ void sr_handlepacket(struct sr_instance* sr,
   /* Ethernet Protocol */
   /*TODO: Sanity Check Packet*/
   if(len>=34){
-    print_hdrs(packet,len);
+    /*print_hdrs(packet,len);*/
     uint8_t* ether_packet = malloc(len+28);
     memcpy(ether_packet,packet,len);
 
@@ -160,9 +160,9 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       sr_arpcache_insert(&(sr->cache), eth_packet->ether_shost, ipHeader->ip_src);
       printf("IP No route available\n");
       icmp_packet = createICMP(3,0,ip_packet+20,len-14);
-      memcpy(ip_packet+20,icmp_packet,(len<28?len:28)+4);
+      memcpy(ip_packet+20,icmp_packet,32);
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(24+(len<28?len:28));
+      ipHeader->ip_len = htons(20+4+(len-34<28?len-34:28));
       free(icmp_packet);      
     }
   }
@@ -172,7 +172,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       icmp_packet = createICMP(3,3,ip_packet+20,len-14);
       memcpy(ip_packet+20,icmp_packet,32);
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(24+(len<28?len:28));
+      ipHeader->ip_len = htons(20+4+(len-34<28?len-34:28));
       free(icmp_packet);
     }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){
       printf("IP Ping\n");
