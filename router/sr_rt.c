@@ -202,13 +202,13 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
   print_addr_ip_int(htonl(ip));
   while(rt_walker)
   {
-    /*sr_print_routing_entry(rt_walker);
+    unsigned long prefix = htonl(ip)&htonl(rt_walker->mask.s_addr);
+    unsigned long match = prefix&htonl(rt_walker->dest.s_addr);
+
+    sr_print_routing_entry(rt_walker);
     print_addr_ip_int(htonl(rt_walker->dest.s_addr));
     print_addr_ip_int(htonl(rt_walker->mask.s_addr));
-    printf("%lu && %lu = %lu\n",(unsigned long)htonl(rt_walker->dest.s_addr), (unsigned long)htonl(ip), (unsigned long)htonl(rt_walker->dest.s_addr)&htonl(ip));
-*/
-    unsigned long prefix = htonl(rt_walker->dest.s_addr)&htonl(rt_walker->mask.s_addr);
-    unsigned long match = prefix&htonl(ip);
+    printf("%lu && %lu\n",prefix, match);
     if (match > best_match && match == prefix){
         best_match = match;
         rt = rt_walker;
