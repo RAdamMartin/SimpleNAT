@@ -130,7 +130,15 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     struct sr_rt * rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ipHeader->ip_dst);
 
     /* found next hop. send packet */
-    if (entry && rt) {
+    if (ipHeader->ip_ttl <= 1){
+      printf("IP TCP/UDP\n");
+      icmp_packet = createICMP(11,0,ip_packet+20,len-34);
+      memcpy(ip_packet+20,icmp_packet,32);
+      ipHeader->ip_p = 1;
+      ipHeader->ip_len = htons(24+(len<28?len:28));
+      free(icmp_packet);      
+    }
+    else if (entry && rt) {
       printf("found next hop\n");
       iface = sr_get_interface(sr, rt->interface);
       ipHeader->ip_ttl = ipHeader->ip_ttl - 1;
