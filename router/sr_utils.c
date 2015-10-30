@@ -190,14 +190,14 @@ uint8_t *createICMP(uint8_t type, uint8_t code, uint8_t *packet, unsigned int si
     if (size < num) {
       num = size;
     }
-    ret = malloc(sizeof(sr_icmp_t3_hdr_t)+num);
-    memset(ret,0,sizeof(sr_icmp_t3_hdr_t)+num);
+    ret = malloc(sizeof(sr_icmp_t3_hdr_t));
+    memset(ret,0,sizeof(sr_icmp_t3_hdr_t));
     sr_icmp_t3_hdr_t *hdr = (sr_icmp_t3_hdr_t*) ret;
     hdr->icmp_type = type;
     hdr->icmp_code = code;
-    hdr->icmp_sum = 0;
+    hdr->icmp_sum = 0;  
     memcpy(hdr->data,packet,num);
-    hdr->icmp_sum = cksum(ret,num + 4);
+    hdr->icmp_sum = htons(cksum(ret,num+4));
   } else {
     fprintf(stderr, "ICMP for type %d is not implemented \n", type);
   }

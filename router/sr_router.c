@@ -84,7 +84,6 @@ void sr_handlepacket(struct sr_instance* sr,
   /* Ethernet Protocol */
   /*TODO: Sanity Check Packet*/
   if(len>=34){
-    /*print_hdrs(packet,len);*/
     uint8_t* ether_packet = malloc(len+28);
     memcpy(ether_packet,packet,len);
 
@@ -122,7 +121,6 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
   /* if the destination address is not one of my routers interfaces */
   if (currentChecksum==incm_cksum && sr_get_interface_from_ip(sr,ntohl(ipHeader->ip_dst)) == NULL){
     printf("IP FWD\n");
-    print_addr_ip_int(ntohl(ipHeader->ip_dst));
 
     /* check cache for ip->mac mapping for next hop */
     struct sr_arpentry *entry;
@@ -224,7 +222,7 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
 
     /* handle an arp request.*/
     if (ntohs(arpHeader->ar_op) == request) {
-        printf("ARP Request in heeereee \n");
+        printf("ARP Request\n");
         /* found an ip->mac mapping. send a reply to the requester's MAC addr */
         if (interface){
           arpHeader->ar_op = ntohs(reply);
@@ -259,10 +257,12 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
               memcpy(outEther->ether_dhost, eth_packet->ether_shost,6);
 
               struct sr_ip_hdr * outIP = (struct sr_ip_hdr *)(req_packet->buf+14);
+              printf("TTL ORIG %d, %d\n",outIP->ip_ttl,ntohs(outIP->ip_ttl));
               outIP->ip_ttl = outIP->ip_ttl-1;
+              outIP->ip_sum = 0;
               outIP->ip_sum = cksum((uint8_t *)outIP,20);
-              
-              sr_send_packet(sr,req_packet->buf,len,iface->name);
+              print_hdrs(req_packet->buf,req_packet->len);
+              sr_send_packet(sr,req_packet->buf,req_packet->len,iface->name);
             }
             sr_arpreq_destroy(&(sr->cache), req);
           }
