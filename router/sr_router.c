@@ -137,8 +137,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       ipHeader->ip_p = 1;
       ipHeader->ip_len = htons(24+(len<28?len:28));
       free(icmp_packet);      
-    }
-    else if (entry && rt) {
+    } else if (entry && rt) {
       printf("found next hop\n");
       iface = sr_get_interface(sr, rt->interface);
       ipHeader->ip_ttl = ipHeader->ip_ttl - 1;
@@ -154,6 +153,8 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       sr_arpcache_insert(&(sr->cache), eth_packet->ether_shost, ipHeader->ip_src);
       req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
       handle_arpreq(sr, req);
+    } else {
+      sr_arpcache_insert(&(sr->cache), eth_packet->ether_shost, ipHeader->ip_src);
     }
   }
   else if(currentChecksum==incm_cksum){
