@@ -329,7 +329,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
     
     /* send icmp host unreachable to source addr of all pkts waiting on this request  */
     if (req->times_sent >= 5) {
-      printf("ARP REQ Timeout\n");
       pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
         assert(packet->buf);

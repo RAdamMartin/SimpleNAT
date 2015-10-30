@@ -198,16 +198,11 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
   }
 
   rt_walker = sr->routing_table;
-  return rt_walker;
+
   while(rt_walker)
   {
     unsigned long prefix = htonl(ip)&htonl(rt_walker->mask.s_addr);
     unsigned long match = prefix&htonl(rt_walker->dest.s_addr);
-
-/*    sr_print_routing_entry(rt_walker);
-    print_addr_ip_int(htonl(rt_walker->dest.s_addr));
-    print_addr_ip_int(htonl(rt_walker->mask.s_addr));
-    printf("%lu && %lu\n",prefix, match);*/
     if (match > best_match && match == prefix){
         best_match = match;
         rt = rt_walker;
