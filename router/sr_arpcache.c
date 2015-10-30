@@ -397,7 +397,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
         assert(packet->buf);
-        struct sr_ip_hdr *ipDropped = (struct sr_ip_hdr *) (packet + 14); 
+        struct sr_ip_hdr *ipDropped = (struct sr_ip_hdr *) (packet->buf + 14); 
 
         struct sr_if* iface;
         iface = sr_get_interface(sr, packet->iface);
@@ -408,15 +408,15 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         
         /* Get ICMP Packet*/
         uint8_t* icmp_packet;
-        icmp_packet = createICMP(3, 0, packet->buf+34, packet->len-14);
-        memcpy(ipHeader+20, icmp_packet, sizeof(sr_icmp_t3_hdr_t));
+        icmp_packet = createICMP(3, 1, (uint8_t *)ipDropped, ipDropped->ip_len);
+        memcpy(outgoing+34, icmp_packet, sizeof(sr_icmp_t3_hdr_t));
         free(icmp_packet);
 
         /*Setup IP Header*/
         ipHeader->ip_hl = 5;
         ipHeader->ip_v = 4;
         ipHeader->ip_tos = 0;
-        ipHeader->ip_len = sizeof(sr_icmp_t3_hdr_t)+20;
+        ipHeader->ip_len = 32;
         ipHeader->ip_id = ipDropped->ip_id;
         ipHeader->ip_dst = ipDropped->ip_src;
         ipHeader->ip_src = iface->ip;
@@ -432,7 +432,8 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         memcpy(ethHeader->ether_shost, iface->addr, 6);
         ethHeader->ether_type = htons(0x0800);
 
-        sr_send_packet(sr, (uint8_t*)ethHeader, packet->len, packet->iface);
+        sr_send_packet(sr, outgoing, packet->len, packet->iface);
+        free(outgoing);
       }
       pthread_mutex_unlock(&(cache->lock));
       sr_arpreq_destroy(&sr->cache, req);
