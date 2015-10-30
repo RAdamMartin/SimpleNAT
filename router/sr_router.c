@@ -131,7 +131,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
     /* found next hop. send packet */
     if (ipHeader->ip_ttl <= 1){
-      printf("IP TCP/UDP\n");
+      printf("IP TTL Died\n");
       icmp_packet = createICMP(11,0,ip_packet+20,len-34);
       memcpy(ip_packet+20,icmp_packet,32);
       ipHeader->ip_p = 1;
