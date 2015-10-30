@@ -82,7 +82,6 @@ void sr_handlepacket(struct sr_instance* sr,
   
   /* Ethernet Protocol */
   if(len>=34){
-    print_hdrs(packet,len);
     uint8_t* ether_packet = malloc(len+28);
     memcpy(ether_packet,packet,len);
 
@@ -126,10 +125,9 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     /* found next hop. send packet */
     if (ipHeader->ip_ttl <= 1){   /* IP TTL died. send ICMP type 11, code 0 */
       icmp_packet = createICMP(11, 0, ip_packet+20,len-14);
-      memcpy(ip_packet+20,icmp_packet,32);
-      
+      memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(20+4+(len-34<28?len-34:28));
+      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));
       free(icmp_packet);      
     } else if (entry && rt) {    /* found next hop. send packet */
       iface = sr_get_interface(sr, rt->interface);
@@ -152,19 +150,19 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     } else {  /* no route found. send ICMP type 3, code 0 */
       sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
       icmp_packet = createICMP(3, 0, ip_packet+20,len-14);
-      memcpy(ip_packet+20,icmp_packet,32);
+      memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(20+4+(len-34<28?len-34:28));
+      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));;
       free(icmp_packet);      
     }
   }
   else if(currentChecksum==incm_cksum){
     if(ipHeader->ip_p==6 || ipHeader->ip_p==17){  /* IP TCP/UDP */
       icmp_packet = createICMP(3,3,ip_packet+20,len-14);
-      memcpy(ip_packet+20,icmp_packet,32);
+      memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(20+4+(len-34<28?len-34:28));
+      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));;
       free(icmp_packet);
     }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){ /* IP ping */
 	    struct sr_icmp_hdr * icmp_header = (struct sr_icmp_hdr *) (packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
@@ -200,7 +198,8 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
     memcpy(ethHeader->ether_dhost, ethHeader->ether_shost,6);
     memcpy(ethHeader->ether_shost, iface->addr,6);
-    sr_send_packet(sr,packet,len,iface->name);
+    print_hdrs(packet,ipHeader->ip_len + 14);
+    sr_send_packet(sr,packet,ipHeader->ip_len + 14,iface->name);
   }
 }
 

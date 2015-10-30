@@ -197,7 +197,7 @@ uint8_t *createICMP(uint8_t type, uint8_t code, uint8_t *packet, unsigned int si
     hdr->icmp_code = code;
     hdr->icmp_sum = 0;  
     memcpy(hdr->data,packet,num);
-    hdr->icmp_sum = htons(cksum(ret,num+4));
+    hdr->icmp_sum = htons(cksum(ret,num+8));
   } else {
     fprintf(stderr, "ICMP for type %d is not implemented \n", type);
   }
