@@ -79,11 +79,10 @@ void sr_handlepacket(struct sr_instance* sr,
   assert(interface);
   struct sr_if * iface = sr_get_interface(sr, interface);
   printf("*** -> Received packet of length %d \n",len);
-  printf("%s\n",inet_ntoa(sr->sr_addr.sin_addr));
   
   /* Ethernet Protocol */
-  /*TODO: Sanity Check Packet*/
   if(len>=34){
+    print_hdrs(packet,len);
     uint8_t* ether_packet = malloc(len+28);
     memcpy(ether_packet,packet,len);
 
@@ -107,13 +106,14 @@ void sr_handlepacket(struct sr_instance* sr,
 
 void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len, struct sr_if * iface){
   assert(packet);
-  struct sr_ethernet_hdr* eth_packet = (struct sr_ethernet_hdr*) packet;
+  struct sr_ethernet_hdr* ethHeader = (struct sr_ethernet_hdr*) packet;
   uint8_t* ip_packet = packet+sizeof(sr_ethernet_hdr_t);
   struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) (ip_packet);  
 
   uint16_t incm_cksum = ipHeader->ip_sum;
   ipHeader->ip_sum = 0;
   uint16_t currentChecksum = cksum(ip_packet,20);
+  ipHeader->ip_sum = incm_cksum;
   uint8_t* icmp_packet;
 
   /* if the destination address is not one of my routers interfaces */
@@ -134,23 +134,23 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     } else if (entry && rt) {    /* found next hop. send packet */
       iface = sr_get_interface(sr, rt->interface);
       ipHeader->ip_ttl = ipHeader->ip_ttl - 1;
+      ipHeader->ip_sum = 0;
       ipHeader->ip_sum = cksum(ip_packet,20);
 
-      memcpy(eth_packet->ether_dhost, entry->mac,6);
-      memcpy(eth_packet->ether_shost, iface->addr,6);
+      memcpy(ethHeader->ether_dhost, entry->mac,6);
+      memcpy(ethHeader->ether_shost, iface->addr,6);
 
       sr_send_packet(sr,packet,len,iface->name);
       free(entry);
       ip_packet = NULL;
     } else if (rt) { /* send an arp request to find out what the next hop should be */
       struct sr_arpreq *req;
-      sr_arpcache_insert(&(sr->cache), eth_packet->ether_shost, ipHeader->ip_src);
+      sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
       req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
       handle_arpreq(sr, req);
       ip_packet = NULL;
     } else {  /* no route found. send ICMP type 3, code 0 */
-      sr_arpcache_insert(&(sr->cache), eth_packet->ether_shost, ipHeader->ip_src);
-      printf("send icmp 3, 0\n");
+      sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
       icmp_packet = createICMP(3, 0, ip_packet+20,len-14);
       memcpy(ip_packet+20,icmp_packet,32);
       ipHeader->ip_p = 1;
@@ -174,6 +174,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 	    
       if(currentChecksum == incm_cksum && icmp_header->icmp_type == 8 && icmp_header->icmp_code == 0) {
 	      icmp_header->icmp_type = 0;
+        ipHeader->ip_sum = 0;
 	      icmp_header->icmp_sum = cksum(icmp_header,len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t));
 	    }
       else{
@@ -194,17 +195,18 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     ipHeader->ip_dst = ipHeader->ip_src;
     ipHeader->ip_src = iface->ip;
     ipHeader->ip_ttl = 64;
+    ipHeader->ip_sum = 0;
     ipHeader->ip_sum = cksum(ip_packet,20);
 
-    memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
-    memcpy(eth_packet->ether_shost, iface->addr,6);
+    memcpy(ethHeader->ether_dhost, ethHeader->ether_shost,6);
+    memcpy(ethHeader->ether_shost, iface->addr,6);
     sr_send_packet(sr,packet,len,iface->name);
   }
 }
 
 void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int len, struct sr_if * iface) {
     assert(packet);
-    struct sr_ethernet_hdr* eth_packet = (struct sr_ethernet_hdr*) packet;
+    struct sr_ethernet_hdr* ethHeader = (struct sr_ethernet_hdr*) packet;
     struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *) (packet+14);
 
     enum sr_arp_opcode request = arp_op_request;
@@ -224,9 +226,9 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
           memcpy(arpHeader->ar_sha, iface->addr,6);
 
           /*swapping outgoing and incoming addr*/
-          memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
-          memcpy(eth_packet->ether_shost, iface->addr,6);
-          sr_send_packet(sr,(uint8_t*)eth_packet,len,iface->name);
+          memcpy(ethHeader->ether_dhost, ethHeader->ether_shost,6);
+          memcpy(ethHeader->ether_shost, iface->addr,6);
+          sr_send_packet(sr,(uint8_t*)ethHeader,len,iface->name);
         }
     }
     /* handle an arp reply */
@@ -245,7 +247,7 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
             for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
               struct sr_ethernet_hdr * outEther = (struct sr_ethernet_hdr *)req_packet->buf;
               memcpy(outEther->ether_shost, iface->addr,6);
-              memcpy(outEther->ether_dhost, eth_packet->ether_shost,6);
+              memcpy(outEther->ether_dhost, ethHeader->ether_shost,6);
 
               struct sr_ip_hdr * outIP = (struct sr_ip_hdr *)(req_packet->buf+14);
               outIP->ip_ttl = outIP->ip_ttl-1;
