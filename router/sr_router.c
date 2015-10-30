@@ -132,10 +132,10 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     /* found next hop. send packet */
     if (ipHeader->ip_ttl <= 1){
       printf("IP TTL Died\n");
-      icmp_packet = createICMP(11,0,ip_packet+20,len-34);
+      icmp_packet = createICMP(11,0,ip_packet+20,len-14);
       memcpy(ip_packet+20,icmp_packet,32);
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(24+(len<28?len:28));
+      ipHeader->ip_len = htons(24+(len<28?len:28)+4);
       free(icmp_packet);      
     } else if (entry && rt) {
       printf("found next hop\n");
@@ -148,19 +148,27 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
       sr_send_packet(sr,packet,len,iface->name);
       free(entry);
+      ip_packet = NULL;
     } else if (rt) { /* send an arp request to find out what interface to send packet out of */
       struct sr_arpreq *req;
       sr_arpcache_insert(&(sr->cache), eth_packet->ether_shost, ipHeader->ip_src);
       req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
       handle_arpreq(sr, req);
+      ip_packet = NULL;
     } else {
       sr_arpcache_insert(&(sr->cache), eth_packet->ether_shost, ipHeader->ip_src);
+      printf("IP No route available\n");
+      icmp_packet = createICMP(3,0,ip_packet+20,len-14);
+      memcpy(ip_packet+20,icmp_packet,(len<28?len:28)+4);
+      ipHeader->ip_p = 1;
+      ipHeader->ip_len = htons(24+(len<28?len:28));
+      free(icmp_packet);      
     }
   }
   else if(currentChecksum==incm_cksum){
     if(ipHeader->ip_p==6 || ipHeader->ip_p==17){
       printf("IP TCP/UDP\n");
-      icmp_packet = createICMP(3,3,ip_packet+20,len-34);
+      icmp_packet = createICMP(3,3,ip_packet+20,len-14);
       memcpy(ip_packet+20,icmp_packet,32);
       ipHeader->ip_p = 1;
       ipHeader->ip_len = htons(24+(len<28?len:28));
@@ -183,24 +191,23 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       printf("IP Bad\n");
       ip_packet = NULL;
     }
-    if(ip_packet){
-      printf("Sending IP resp \n");
-      uint32_t src = ipHeader->ip_src;
-      ipHeader->ip_src = ipHeader->ip_dst;
-      ipHeader->ip_dst = src;
-      ipHeader->ip_ttl = 64;
-      ipHeader->ip_sum = cksum(ip_packet,20);
-
-      memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
-      memcpy(eth_packet->ether_shost, iface->addr,6);
-
-      sr_send_packet(sr,packet,len,iface->name);
-    }
   }
   else{
       printf("IP INVALID\n");
       printf("%d != %d OR %d <= 34\n",currentChecksum,ipHeader->ip_sum, len);
       ip_packet = NULL;
+  }
+  if(ip_packet){
+    printf("Sending IP resp \n");
+    ipHeader->ip_dst = ipHeader->ip_src;
+    ipHeader->ip_src = iface->ip;
+    ipHeader->ip_ttl = 64;
+    ipHeader->ip_sum = cksum(ip_packet,20);
+
+    memcpy(eth_packet->ether_dhost, eth_packet->ether_shost,6);
+    memcpy(eth_packet->ether_shost, iface->addr,6);
+
+    sr_send_packet(sr,packet,len,iface->name);
   }
 }
 

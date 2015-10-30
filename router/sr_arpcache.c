@@ -408,7 +408,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         
         /* Get ICMP Packet*/
         uint8_t* icmp_packet;
-        icmp_packet = createICMP(3, 0, packet->buf+34, packet->len-34);
+        icmp_packet = createICMP(3, 0, packet->buf+34, packet->len-14);
         memcpy(ipHeader+20, icmp_packet, sizeof(sr_icmp_t3_hdr_t));
         free(icmp_packet);
 
