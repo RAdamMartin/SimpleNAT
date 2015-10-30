@@ -1,67 +1,3 @@
-/* This file defines an ARP cache, which is made of two structures: an ARP
-   request queue, and ARP cache entries. The ARP request queue holds data about
-   an outgoing ARP cache request and the packets that are waiting on a reply
-   to that ARP cache request. The ARP cache entries hold IP->MAC mappings and
-   are timed out every SR_ARPCACHE_TO seconds.
-
-   Pseudocode for use of these structures follows.
-
-   --
-
-   # When sending packet to next_hop_ip
-   entry = arpcache_lookup(next_hop_ip)
-
-   if entry:
-       use next_hop_ip->mac mapping in entry to send the packet
-       free entry
-   else:
-       req = arpcache_queuereq(next_hop_ip, packet, len)
-       handle_arpreq(req)
-
-   --
-
-   The handle_arpreq() function is a function you should write, and it should
-   handle sending ARP requests if necessary:
-
-   function handle_arpreq(req):
-       if difftime(now, req->sent) > 1.0
-           if req->times_sent >= 5:
-               send icmp host unreachable to source addr of all pkts waiting
-                 on this request
-               arpreq_destroy(req)
-           else:
-               send arp request
-               req->sent = now
-               req->times_sent++
-
-   --
-
-   The ARP reply processing code should move entries from the ARP request
-   queue to the ARP cache:
-
-   # When servicing an arp reply that gives us an IP->MAC mapping
-   req = arpcache_insert(ip, mac)
-
-   if req:
-       send all packets on the req->packets linked list
-       arpreq_destroy(req)
-
-   --
-
-   To meet the guidelines in the assignment (ARP requests are sent every second
-   until we send 5 ARP requests, then we send ICMP host unreachable back to
-   all packets waiting on this ARP request), you must fill out the following
-   function that is called every second and is defined in sr_arpcache.c:
-
-   void sr_arpcache_sweepreqs(struct sr_instance *sr) {
-       for each request on sr->cache.requests:
-           handle_arpreq(request)
-   }
-
-   Since handle_arpreq as defined in the comments above could destroy your
-   current request, make sure to save the next pointer before calling
-   handle_arpreq when traversing through the ARP requests linked list.
- */
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -441,7 +377,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
     /* send an arp request */
     else {
-      printf("handling req\n");
       pthread_mutex_lock(&(cache->lock));
       packet = req->packets;
       assert(packet->buf);
@@ -461,10 +396,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       memset(arpHeader->ar_tha, 255, 6);
       arpHeader->ar_tip = ipIncoming->ip_dst;
 
-      /* set Ethernet Header*/
+      /* set Ethernet Header */
       ethHeader->ether_type = htons(0x0806);
       memset(ethHeader->ether_dhost, 255,6);
 
+      /* get outgoing interface and send the request */
       struct sr_if* if_walker = 0;
       if_walker = sr->if_list;
 
@@ -474,7 +410,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
           arpHeader->ar_sip = if_walker->ip;
           memcpy(arpHeader->ar_sha, if_walker->addr, 6);
           memcpy(ethHeader->ether_shost, if_walker->addr, 6);
-          printf("Sending ARP Req\n");
+
           sr_send_packet(sr, outgoing, packet->len, if_walker->name);
         }
         if_walker = if_walker->next;
