@@ -393,7 +393,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
     
     /* send icmp host unreachable to source addr of all pkts waiting on this request  */
     if (req->times_sent > 5) {
-      printf("ARP REQ Timeout\n");
       pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
         assert(packet->buf);
@@ -441,7 +440,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
     /* send an arp request */
     else {
-      printf("handling req\n");
       pthread_mutex_lock(&(cache->lock));
       packet = req->packets;
       assert(packet->buf);
@@ -461,10 +459,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       memset(arpHeader->ar_tha, 255, 6);
       arpHeader->ar_tip = ipIncoming->ip_dst;
 
-      /* set Ethernet Header*/
+      /* set Ethernet Header */
       ethHeader->ether_type = htons(0x0806);
       memset(ethHeader->ether_dhost, 255,6);
 
+      /* get outgoing interface and send the request */
       struct sr_if* if_walker = 0;
       if_walker = sr->if_list;
 
@@ -474,7 +473,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
           arpHeader->ar_sip = if_walker->ip;
           memcpy(arpHeader->ar_sha, if_walker->addr, 6);
           memcpy(ethHeader->ether_shost, if_walker->addr, 6);
-          printf("Sending ARP Req\n");
+
           sr_send_packet(sr, outgoing, packet->len, if_walker->name);
         }
         if_walker = if_walker->next;
