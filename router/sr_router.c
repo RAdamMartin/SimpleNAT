@@ -85,7 +85,7 @@ void sr_handlepacket(struct sr_instance* sr,
   /*TODO: Sanity Check Packet*/
   if(len>=34){
     print_hdrs(packet,len);
-    uint8_t* ether_packet = malloc(len);
+    uint8_t* ether_packet = malloc(len+28);
     memcpy(ether_packet,packet,len);
 
     uint16_t package_type = ethertype(ether_packet);
@@ -135,7 +135,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       icmp_packet = createICMP(11,0,ip_packet+20,len-14);
       memcpy(ip_packet+20,icmp_packet,32);
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(24+(len<28?len:28)+4);
+      ipHeader->ip_len = htons(20+4+(len-34<28?len-34:28));
       free(icmp_packet);      
     } else if (entry && rt) {
       printf("found next hop\n");
@@ -150,6 +150,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       free(entry);
       ip_packet = NULL;
     } else if (rt) { /* send an arp request to find out what interface to send packet out of */
+      printf("IP No known path, send ARP\n");
       struct sr_arpreq *req;
       sr_arpcache_insert(&(sr->cache), eth_packet->ether_shost, ipHeader->ip_src);
       req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
@@ -259,10 +260,11 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
 
               struct sr_ip_hdr * outIP = (struct sr_ip_hdr *)(req_packet->buf+14);
               outIP->ip_ttl = outIP->ip_ttl-1;
+              outIP->ip_sum = cksum((uint8_t *)outIP,20);
               
               sr_send_packet(sr,req_packet->buf,len,iface->name);
-              sr_arpreq_destroy(&(sr->cache), req);
             }
+            sr_arpreq_destroy(&(sr->cache), req);
           }
           break;
         }
