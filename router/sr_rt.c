@@ -198,6 +198,7 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
   }
 
   rt_walker = sr->routing_table;
+  return rt_walker;
   while(rt_walker)
   {
     unsigned long prefix = htonl(ip)&htonl(rt_walker->mask.s_addr);
