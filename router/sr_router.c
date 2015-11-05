@@ -108,6 +108,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
   struct sr_ethernet_hdr* ethHeader = (struct sr_ethernet_hdr*) packet;
   uint8_t* ip_packet = packet+sizeof(sr_ethernet_hdr_t);
   struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) (ip_packet);  
+  print_hdrs(packet,len);
 
   uint16_t incm_cksum = ipHeader->ip_sum;
   ipHeader->ip_sum = 0;
@@ -148,7 +149,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       handle_arpreq(sr, req);
       ip_packet = NULL;
     } else {  /* no route found. send ICMP type 3, code 0 */
-      sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
+      printf("No route found\n");
       icmp_packet = createICMP(3, 0, ip_packet+20,len-14);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
@@ -162,7 +163,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));;
+      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));
       free(icmp_packet);
     }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){ /* IP ping */
 	    struct sr_icmp_hdr * icmp_header = (struct sr_icmp_hdr *) (packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
@@ -189,17 +190,37 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       printf("%d != %d OR %d <= 34\n",currentChecksum,ipHeader->ip_sum, len);
       ip_packet = NULL;
   }
-  if(ip_packet){  /* send IP packet */
+  if(ip_packet){  /* send ICMP packet */
     ipHeader->ip_dst = ipHeader->ip_src;
     ipHeader->ip_src = iface->ip;
     ipHeader->ip_ttl = 64;
     ipHeader->ip_sum = 0;
     ipHeader->ip_sum = cksum(ip_packet,20);
 
-    memcpy(ethHeader->ether_dhost, ethHeader->ether_shost,6);
-    memcpy(ethHeader->ether_shost, iface->addr,6);
-    print_hdrs(packet,ipHeader->ip_len + 14);
-    sr_send_packet(sr,packet,ipHeader->ip_len + 14,iface->name);
+    struct sr_arpentry *entry;
+    entry = sr_arpcache_lookup(&sr->cache, ipHeader->ip_dst);
+    struct sr_rt * rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ipHeader->ip_dst);
+
+    if (entry && rt) {    /* found next hop. send packet */
+      iface = sr_get_interface(sr, rt->interface);
+      ipHeader->ip_ttl = ipHeader->ip_ttl - 1;
+      ipHeader->ip_sum = 0;
+      ipHeader->ip_sum = cksum(ip_packet,20);
+
+      memcpy(ethHeader->ether_dhost, entry->mac,6);
+      memcpy(ethHeader->ether_shost, iface->addr,6);
+      printf("SENDING\n");
+      print_hdrs(packet,len);
+      sr_send_packet(sr,packet,len,iface->name);
+      free(entry);
+      ip_packet = NULL;
+    } else if (rt) { /* send an arp request to find out what the next hop should be */
+      struct sr_arpreq *req;
+      sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
+      req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
+      handle_arpreq(sr, req);
+      ip_packet = NULL;
+    }
   }
 }
 

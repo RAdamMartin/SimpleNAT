@@ -241,7 +241,7 @@ struct sr_if *sr_get_interface_from_ip(struct sr_instance* sr, uint32_t addr)
     }
 
     if_walker = sr->if_list;
-    while(if_walker->next)
+    while(if_walker)
     {
         if (ntohl(if_walker->ip) == addr){
             return if_walker;

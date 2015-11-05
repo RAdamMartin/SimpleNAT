@@ -405,13 +405,13 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
 
       while(if_walker)
       {
-        if(strncmp(if_walker->name,packet->iface,sr_IFACE_NAMELEN) != 0){
+        /*if(strncmp(if_walker->name,packet->iface,sr_IFACE_NAMELEN) != 0){*/
           arpHeader->ar_sip = if_walker->ip;
           memcpy(arpHeader->ar_sha, if_walker->addr, 6);
           memcpy(ethHeader->ether_shost, if_walker->addr, 6);
 
           sr_send_packet(sr, outgoing, packet->len, if_walker->name);
-        }
+        /*}*/
         if_walker = if_walker->next;
       }
 
