@@ -136,8 +136,8 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       ipHeader->ip_sum = 0;
       ipHeader->ip_sum = cksum(ip_packet,20);
       
+      memcpy(ethHeader->ether_dhost, entry->mac,6);
       memcpy(ethHeader->ether_shost, iface->addr,6);
-      memcpy(ethHeader->ether_dhost, ethHeader->ether_shost,6);
 
       sr_send_packet(sr,packet,len,iface->name);
       free(entry);
