@@ -203,3 +203,8 @@ uint8_t *createICMP(uint8_t type, uint8_t code, uint8_t *packet, unsigned int si
   }
   return ret;
 }
+
+void set_addr(sr_ethernet_hdr_t* ethHeader, uint8_t *src_addr, uint8_t *dst_addr) {
+  memcpy(ethHeader->ether_dhost, dst_addr,6);
+  memcpy(ethHeader->ether_shost, src_addr,6);
+}

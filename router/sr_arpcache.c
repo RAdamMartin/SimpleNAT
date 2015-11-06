@@ -363,8 +363,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         ipHeader->ip_sum = cksum((uint8_t *)ipHeader,20);        
 
         /*Setup Ethernet Header*/
-        memcpy(ethHeader->ether_dhost, ethHeader->ether_shost,6);
-        memcpy(ethHeader->ether_shost, iface->addr, 6);
+        set_addr(ethHeader, iface->addr, ethHeader->ether_shost);
         ethHeader->ether_type = htons(0x0800);
 
         sr_send_packet(sr, outgoing, packet->len, packet->iface);
