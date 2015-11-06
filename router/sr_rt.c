@@ -201,9 +201,9 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
 
   while(rt_walker)
   {
-    unsigned long prefix = htonl(ip)&htonl(rt_walker->mask.s_addr);
-    unsigned long match = prefix&htonl(rt_walker->dest.s_addr);
-    if (match > best_match && match == prefix){
+    uint32_t rt_ip = (rt_walker->mask.s_addr)&(rt_walker->dest.s_addr);
+    uint32_t match = ip&rt_ip;
+    if (match > best_match && match == rt_ip){
         best_match = match;
         rt = rt_walker;
     }
