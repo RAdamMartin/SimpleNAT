@@ -105,9 +105,9 @@ void sr_handlepacket(struct sr_instance* sr,
 
 void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len, struct sr_if * iface){
   assert(packet);
-  struct sr_ethernet_hdr* ethHeader = (struct sr_ethernet_hdr*) packet;
+  sr_ethernet_hdr_t* ethHeader = (sr_ethernet_hdr_t*) packet;
   uint8_t* ip_packet = packet+sizeof(sr_ethernet_hdr_t);
-  struct sr_ip_hdr * ipHeader = (struct sr_ip_hdr *) (ip_packet);  
+  sr_ip_hdr_t * ipHeader = (sr_ip_hdr_t *) (ip_packet);  
   print_hdrs(packet,len);
 
   uint16_t incm_cksum = ipHeader->ip_sum;
@@ -166,7 +166,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));
       free(icmp_packet);
     }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){ /* IP ping */
-	    struct sr_icmp_hdr * icmp_header = (struct sr_icmp_hdr *) (packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+	    sr_icmp_hdr_t * icmp_header = (sr_icmp_hdr_t *) (packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
       incm_cksum = icmp_header->icmp_sum;
       icmp_header->icmp_sum = 0;
 	    currentChecksum = cksum(icmp_header,len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t));
@@ -227,8 +227,8 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
 void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int len, struct sr_if * iface) {
     assert(packet);
-    struct sr_ethernet_hdr* ethHeader = (struct sr_ethernet_hdr*) packet;
-    struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *) (packet+14);
+    sr_ethernet_hdr_t* ethHeader = (sr_ethernet_hdr_t*) packet;
+    sr_arp_hdr_t * arpHeader = (sr_arp_hdr_t *) (packet+14);
 
     enum sr_arp_opcode request = arp_op_request;
     enum sr_arp_opcode reply = arp_op_reply;
@@ -266,11 +266,11 @@ void sr_handleARPpacket(struct sr_instance *sr, uint8_t* packet, unsigned int le
             iface = sr_get_interface(sr, rt->interface);
             /* send all packets waiting on the request that was replied to */
             for (req_packet = req->packets; req_packet != NULL; req_packet = req_packet->next) {
-              struct sr_ethernet_hdr * outEther = (struct sr_ethernet_hdr *)req_packet->buf;
+              sr_ethernet_hdr_t * outEther = (sr_ethernet_hdr_t *)req_packet->buf;
               memcpy(outEther->ether_shost, iface->addr,6);
               memcpy(outEther->ether_dhost, ethHeader->ether_shost,6);
 
-              struct sr_ip_hdr * outIP = (struct sr_ip_hdr *)(req_packet->buf+14);
+              sr_ip_hdr_t * outIP = (sr_ip_hdr_t *)(req_packet->buf+14);
               outIP->ip_ttl = outIP->ip_ttl-1;
               outIP->ip_sum = 0;
               outIP->ip_sum = cksum((uint8_t *)outIP,20);

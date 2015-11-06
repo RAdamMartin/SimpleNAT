@@ -332,14 +332,14 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       pthread_mutex_lock(&(cache->lock));
       for (packet = req->packets; packet != NULL; packet = packet->next) {
         assert(packet->buf);
-        struct sr_ip_hdr *ipDropped = (struct sr_ip_hdr *) (packet->buf + 14); 
+        sr_ip_hdr_t *ipDropped = (sr_ip_hdr_t *) (packet->buf + 14); 
 
         struct sr_if* iface;
         iface = sr_get_interface(sr, packet->iface);
 
         uint8_t *outgoing = malloc(100);
-        struct sr_ethernet_hdr *ethHeader = (struct sr_ethernet_hdr *)outgoing;
-        struct sr_ip_hdr *ipHeader = (struct sr_ip_hdr *) (outgoing + 14);  
+        sr_ethernet_hdr_t *ethHeader = (sr_ethernet_hdr_t *)outgoing;
+        sr_ip_hdr_t *ipHeader = (sr_ip_hdr_t *) (outgoing + 14);  
         
         /* Get ICMP Packet*/
         uint8_t* icmp_packet;
@@ -380,11 +380,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
       packet = req->packets;
       assert(packet->buf);
       /*struct sr_ethernet_hdr *ethIncoming = (struct sr_ethernet_hdr *)(packet->buf);*/
-      struct sr_ip_hdr * ipIncoming = (struct sr_ip_hdr *)((packet->buf) + 14);
+      sr_ip_hdr_t * ipIncoming = (sr_ip_hdr_t *)((packet->buf) + 14);
 
       uint8_t * outgoing = (uint8_t*)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t));
-      struct sr_ethernet_hdr *ethHeader = (struct sr_ethernet_hdr *) outgoing;
-      struct sr_arp_hdr * arpHeader = (struct sr_arp_hdr *)(outgoing + sizeof(sr_ethernet_hdr_t));
+      sr_ethernet_hdr_t *ethHeader = (sr_ethernet_hdr_t *) outgoing;
+      sr_arp_hdr_t * arpHeader = (sr_arp_hdr_t *)(outgoing + sizeof(sr_ethernet_hdr_t));
 
       /* set ARPHeader to request */
       arpHeader->ar_hrd = htons(0x0001); 
