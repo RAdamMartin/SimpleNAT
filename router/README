@@ -16,3 +16,5 @@ In the file sr_utils.c, the function -- createICMP() -- was implemented to creat
 DESIGN DECISIONS:
 ----------------------------------
 In sr_router.c, we decided to try to keep things fairly modular, though the nature of the assignment often pushed us towards the quickest solution.  Using a method to create our ICMP packets allowed for quick adjustments in the case of mistakes.  Streaming incoming packets into separate methods allowed us to work in parallel on the project.  The structure in sr_arpcache.c follows the structure suggested in the comments and largely implemented in the starter code.  For the other files, the additions were made to reduce code duplication and to make singular fail points for easier modification.  
+
+We also decided to use a github repository for ease of transferring files and for multiple access, and to use Trello for issue tracking.  
