@@ -135,7 +135,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       ipHeader->ip_ttl = ipHeader->ip_ttl - 1;
       ipHeader->ip_sum = 0;
       ipHeader->ip_sum = cksum(ip_packet,20);
-
+      
       memcpy(ethHeader->ether_dhost, entry->mac,6);
       memcpy(ethHeader->ether_shost, iface->addr,6);
 
@@ -209,6 +209,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
       memcpy(ethHeader->ether_dhost, entry->mac,6);
       memcpy(ethHeader->ether_shost, iface->addr,6);
+
       printf("SENDING\n");
       print_hdrs(packet,len);
       sr_send_packet(sr,packet,len,iface->name);
