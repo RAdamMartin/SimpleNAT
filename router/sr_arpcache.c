@@ -337,7 +337,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         struct sr_if* iface;
         iface = sr_get_interface(sr, packet->iface);
 
-        uint8_t *outgoing = malloc(100);
+        uint8_t *outgoing = malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t));
         sr_ethernet_hdr_t *ethHeader = (sr_ethernet_hdr_t *)outgoing;
         sr_ip_hdr_t *ipHeader = (sr_ip_hdr_t *) (outgoing + 14);  
         
@@ -365,7 +365,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         set_addr(ethHeader, iface->addr, ethHeader->ether_shost);
         ethHeader->ether_type = htons(0x0800);
 
-        sr_send_packet(sr, outgoing, packet->len, packet->iface);
+        sr_send_packet(sr, outgoing, sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t), packet->iface);
         free(outgoing);
       }
       pthread_mutex_unlock(&(cache->lock));
@@ -407,7 +407,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         memcpy(arpHeader->ar_sha, if_walker->addr, 6);
         memcpy(ethHeader->ether_shost, if_walker->addr, 6);
 
-        sr_send_packet(sr, outgoing, packet->len, if_walker->name);
+        sr_send_packet(sr, outgoing, sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t), if_walker->name);
         
         if_walker = if_walker->next;
       }
