@@ -108,7 +108,6 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
   sr_ethernet_hdr_t* ethHeader = (sr_ethernet_hdr_t*) packet;
   uint8_t* ip_packet = packet+sizeof(sr_ethernet_hdr_t);
   sr_ip_hdr_t * ipHeader = (sr_ip_hdr_t *) (ip_packet);  
-  print_hdrs(packet,len);
 
   uint16_t incm_cksum = ipHeader->ip_sum;
   ipHeader->ip_sum = 0;
@@ -186,7 +185,6 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
   }
   else{
       printf("IP INVALID\n");
-      printf("%d != %d OR %d <= 34\n",currentChecksum,ipHeader->ip_sum, len);
       ip_packet = NULL;
   }
   if(ip_packet){  /* send ICMP packet */
@@ -202,14 +200,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
 
     if (entry && rt) {    /* found next hop. send packet */
       iface = sr_get_interface(sr, rt->interface);
-      ipHeader->ip_ttl = ipHeader->ip_ttl - 1;
-      ipHeader->ip_sum = 0;
-      ipHeader->ip_sum = cksum(ip_packet,20);
-
       set_addr(ethHeader, iface->addr, entry->mac);
-
-      printf("SENDING\n");
-      print_hdrs(packet,len);
       sr_send_packet(sr,packet,len,iface->name);
       free(entry);
       ip_packet = NULL;
