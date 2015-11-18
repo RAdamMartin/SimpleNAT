@@ -566,8 +566,8 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
                          unsigned int len,
                          const char* iface /* borrowed */)
 {
-DEBUG printf("Sending Packet:\n");
-DEBUG print_hdrs(buf,len);
+printf("Sending Packet:\n");
+print_hdrs(buf,len);
 
     c_packet_header *sr_pkt;
     unsigned int total_len =  len + (sizeof(c_packet_header));
