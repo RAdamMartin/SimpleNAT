@@ -116,6 +116,10 @@ void print_hdr_icmp(uint8_t *buf) {
   fprintf(stderr, "\tcode: %d\n", icmp_hdr->icmp_code);
   /* Keep checksum in NBO */
   fprintf(stderr, "\tchecksum: %d\n", icmp_hdr->icmp_sum);
+  if (icmp_hdr->type != 0){
+    fprinf(stderr,"With payload:\n");
+    print_hdr_ip(icmp_hdr->data);
+  }
 }
 
 
