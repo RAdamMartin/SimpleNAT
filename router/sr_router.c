@@ -160,7 +160,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     if(ipHeader->ip_p==6 || ipHeader->ip_p==17){  /* IP TCP/UDP */
       char load[len-33];
       strncpy(load,(char *)(ipHeader+20),len-34);
-      load[len-34] = '\n';
+      load[len-34] = '\0';
       printf("TCP/UDP payload: %s\n",load);
       icmp_packet = createICMP(3,3,ip_packet,len-14);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
