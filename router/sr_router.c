@@ -82,6 +82,7 @@ void sr_handlepacket(struct sr_instance* sr,
   
   /* Ethernet Protocol */
   if(len>=34){
+    print_hdrs(packet,len);
     uint8_t* ether_packet = malloc(len+28);
     memcpy(ether_packet,packet,len);
 
@@ -147,8 +148,9 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       handle_arpreq(sr, req);
       ip_packet = NULL;
     } else {  /* no route found. send ICMP type 3, code 0 */
-      printf("No route found\n");
+      printf("No route found for:\n");
       icmp_packet = createICMP(3, 0, ip_packet,len-14);
+      print_hdr_ip(((sr_icmp_t3_hdr_t*)icmp_packet)->data,28);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
       ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));;
