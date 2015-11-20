@@ -40,6 +40,8 @@
 #include "sr_router.h"
 #include "sr_if.h"
 #include "sr_protocol.h"
+/*DEBUG*/
+#include "sr_utils.h"
 
 #include "sha1.h"
 #include "vnscommand.h"
@@ -564,6 +566,9 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
                          unsigned int len,
                          const char* iface /* borrowed */)
 {
+/*DEBUG printf("Sending Packet:\n");*/
+/*DEBUG print_hdrs(buf,len);*/
+
     c_packet_header *sr_pkt;
     unsigned int total_len =  len + (sizeof(c_packet_header));
 
@@ -602,7 +607,6 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
         free(sr_pkt);
         return -1;
     }
-
     free(sr_pkt);
 
     return 0;
