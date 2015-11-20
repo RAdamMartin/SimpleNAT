@@ -116,6 +116,10 @@ void print_hdr_icmp(uint8_t *buf) {
   fprintf(stderr, "\tcode: %d\n", icmp_hdr->icmp_code);
   /* Keep checksum in NBO */
   fprintf(stderr, "\tchecksum: %d\n", icmp_hdr->icmp_sum);
+  if (icmp_hdr->icmp_type != 0){
+    fprintf(stderr,"With payload:\n");
+    print_hdr_ip(((sr_icmp_t3_hdr_t *)(buf))->data);
+  }
 }
 
 
@@ -198,6 +202,8 @@ uint8_t *createICMP(uint8_t type, uint8_t code, uint8_t *packet, unsigned int si
     hdr->icmp_sum = 0;  
     memcpy(hdr->data,packet,num);
     hdr->icmp_sum = htons(cksum(ret,num+8));
+    printf("Created ICMP response with payload (len=%d):\n",num);
+    print_hdr_ip(hdr->data);
   } else {
     fprintf(stderr, "ICMP for type %d is not implemented \n", type);
   }
