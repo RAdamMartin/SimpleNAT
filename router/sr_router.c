@@ -85,11 +85,16 @@ void sr_handlepacket(struct sr_instance* sr,
     print_hdrs(packet,len);
     uint8_t* ether_packet = malloc(len+28);
     memcpy(ether_packet,packet,len);
+    
+    struct sr_if* inc_if = sr_get_interface(sr, interface);
 
     uint16_t package_type = ethertype(ether_packet);
     enum sr_ethertype arp = ethertype_arp;
     enum sr_ethertype ip = ethertype_ip;
-
+    
+    /*if (strcmp(inc_if->addr,((sr_ethernet_hdr_t*)ether_packet)->ether_dhost{}*/
+    printf("%s = ",inc_if->addr);
+    print_addr_eth(((sr_ethernet_hdr_t*)ether_packet)->ether_dhost);
     if(package_type==arp){
       /* ARP protocol */
       sr_handleARPpacket(sr, ether_packet, len, iface);
@@ -152,7 +157,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       icmp_packet = createICMP(3, 0, ip_packet,len-14);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));;
+      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));
       free(icmp_packet);      
     }
   }
