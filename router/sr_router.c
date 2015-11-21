@@ -82,17 +82,14 @@ void sr_handlepacket(struct sr_instance* sr,
   
   /* Ethernet Protocol */
   if(len>=34){
-    print_hdrs(packet,len);
     uint8_t* ether_packet = malloc(len+28);
     memcpy(ether_packet,packet,len);
+    print_hdrs(packet,len);
 
     uint16_t package_type = ethertype(ether_packet);
     enum sr_ethertype arp = ethertype_arp;
     enum sr_ethertype ip = ethertype_ip;
-    
-    /*if (strcmp(inc_if->addr,((sr_ethernet_hdr_t*)ether_packet)->ether_dhost{}*/
-    printf("%s = ",inc_if->addr);
-    print_addr_eth(((sr_ethernet_hdr_t*)ether_packet)->ether_dhost);
+
     if(package_type==arp){
       /* ARP protocol */
       sr_handleARPpacket(sr, ether_packet, len, iface);
@@ -151,20 +148,17 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       handle_arpreq(sr, req);
       ip_packet = NULL;
     } else {  /* no route found. send ICMP type 3, code 0 */
-      printf("No route found:\n");
+      printf("No route found for:\n");
       icmp_packet = createICMP(3, 0, ip_packet,len-14);
+      print_hdr_ip(((sr_icmp_t3_hdr_t*)icmp_packet)->data);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));
+      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));;
       free(icmp_packet);      
     }
   }
   else if(currentChecksum==incm_cksum){
     if(ipHeader->ip_p==6 || ipHeader->ip_p==17){  /* IP TCP/UDP */
-      char load[len-33];
-      strncpy(load,(char *)(ipHeader+20),len-34);
-      load[len-34] = '\0';
-      printf("TCP/UDP payload: %s\n",load);
       icmp_packet = createICMP(3,3,ip_packet,len-14);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       
