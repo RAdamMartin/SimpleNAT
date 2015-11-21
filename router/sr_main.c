@@ -46,7 +46,7 @@ extern char* optarg;
 #define DEFAULT_TOPO 0
 
 static void usage(char* );
-static void sr_init_instance(struct sr_instance* );
+static void sr_init_instance(struct sr_instance*, unsigned short mode);
 static void sr_destroy_instance(struct sr_instance* );
 static void sr_set_user(struct sr_instance* );
 static void sr_load_rt_wrap(struct sr_instance* sr, char* rtable);
@@ -62,6 +62,7 @@ int main(int argc, char **argv)
     char *server = DEFAULT_SERVER;
     char *rtable = DEFAULT_RTABLE;
     char *template = NULL;
+    unsigned short mode = 0;
     unsigned int port = DEFAULT_PORT;
     unsigned int topo = DEFAULT_TOPO;
     char *logfile = 0;
@@ -69,7 +70,7 @@ int main(int argc, char **argv)
 
     printf("Using %s\n", VERSION_INFO);
 
-    while ((c = getopt(argc, argv, "hs:v:p:u:t:r:l:T:")) != EOF)
+    while ((c = getopt(argc, argv, "hs:v:p:u:t:r:l:T:n:")) != EOF)
     {
         switch (c)
         {
@@ -101,11 +102,14 @@ int main(int argc, char **argv)
             case 'T':
                 template = optarg;
                 break;
+            case 'n':
+                mode = 1;
+                break;
         } /* switch */
     } /* -- while -- */
 
     /* -- zero out sr instance -- */
-    sr_init_instance(&sr);
+    sr_init_instance(&sr,mode);
 
     /* -- set up routing table from file -- */
     if(template == NULL) {
@@ -237,7 +241,7 @@ static void sr_destroy_instance(struct sr_instance* sr)
  *
  *----------------------------------------------------------------------------*/
 
-static void sr_init_instance(struct sr_instance* sr)
+static void sr_init_instance(struct sr_instance* sr, unsigned short mode)
 {
     /* REQUIRES */
     assert(sr);
@@ -249,6 +253,7 @@ static void sr_init_instance(struct sr_instance* sr)
     sr->if_list = 0;
     sr->routing_table = 0;
     sr->logfile = 0;
+    sr->mode = mode;
 } /* -- sr_init_instance -- */
 
 /*-----------------------------------------------------------------------------

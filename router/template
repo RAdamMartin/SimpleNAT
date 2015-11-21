@@ -1,0 +1,95 @@
+sr_arpcache.c:       for each request on sr->cache.requests:
+sr_arpcache.c:    for (req = sr->cache.requests; req != NULL; req = next_req) {
+sr_arpcache.c:    struct sr_arpcache *cache = &(sr->cache);
+sr_arpcache.c:  struct sr_arpcache *cache = &(sr->cache);
+sr_arpcache.c:      sr_arpreq_destroy(&sr->cache, req);
+sr_arpcache.c:      if_walker = sr->if_list;
+sr_if.c:    if_walker = sr->if_list;
+sr_if.c:    if(sr->if_list == 0)
+sr_if.c:        sr->if_list = (struct sr_if*)malloc(sizeof(struct sr_if));
+sr_if.c:        assert(sr->if_list);
+sr_if.c:        sr->if_list->next = 0;
+sr_if.c:        strncpy(sr->if_list->name,name,sr_IFACE_NAMELEN);
+sr_if.c:    if_walker = sr->if_list;
+sr_if.c:    assert(sr->if_list);
+sr_if.c:    if_walker = sr->if_list;
+sr_if.c:    assert(sr->if_list);
+sr_if.c:    if_walker = sr->if_list;
+sr_if.c:    if(sr->if_list == 0)
+sr_if.c:    if_walker = sr->if_list;
+sr_if.c:    if(sr->if_list == 0)
+sr_if.c:    if_walker = sr->if_list;
+sr_main.c:        strncpy(sr->user, "something_silly", 32);
+sr_main.c:        strncpy(sr->user, pw->pw_name, 32);
+sr_main.c:    if(sr->logfile)
+sr_main.c:        sr_dump_close(sr->logfile);
+sr_main.c:    sr->sockfd = -1;
+sr_main.c:    sr->user[0] = 0;
+sr_main.c:    sr->host[0] = 0;
+sr_main.c:    sr->topo_id = 0;
+sr_main.c:    sr->if_list = 0;
+sr_main.c:    sr->routing_table = 0;
+sr_main.c:    sr->logfile = 0;
+sr_main.c:    if( (sr->if_list == 0) || (sr->routing_table == 0))
+sr_main.c:    rt_walker = sr->routing_table;
+sr_main.c:        if_walker = sr->if_list;
+sr_router.c:    sr_arpcache_init(&(sr->cache));
+sr_router.c:    pthread_attr_init(&(sr->attr));
+sr_router.c:    pthread_attr_setdetachstate(&(sr->attr), PTHREAD_CREATE_JOINABLE);
+sr_router.c:    pthread_attr_setscope(&(sr->attr), PTHREAD_SCOPE_SYSTEM);
+sr_router.c:    pthread_attr_setscope(&(sr->attr), PTHREAD_SCOPE_SYSTEM);
+sr_router.c:    pthread_create(&thread, &(sr->attr), sr_arpcache_timeout, sr);
+sr_router.c:    entry = sr_arpcache_lookup(&sr->cache, ipHeader->ip_dst);
+sr_router.c:      sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
+sr_router.c:      req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
+sr_router.c:    entry = sr_arpcache_lookup(&sr->cache, ipHeader->ip_dst);
+sr_router.c:      sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
+sr_router.c:      req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
+sr_router.c:      pthread_mutex_lock(&(sr->cache.lock));   
+sr_router.c:      for (req = sr->cache.requests; req != NULL; req = req->next){
+sr_router.c:            sr_arpreq_destroy(&(sr->cache), req);
+sr_router.c:      pthread_mutex_unlock(&(sr->cache.lock));
+sr_router.c:      sr_arpcache_insert(&(sr->cache),arpHeader->ar_sha,arpHeader->ar_sip);
+sr_rt.c:            sr->routing_table = 0;
+sr_rt.c:    if(sr->routing_table == 0)
+sr_rt.c:        sr->routing_table = (struct sr_rt*)malloc(sizeof(struct sr_rt));
+sr_rt.c:        assert(sr->routing_table);
+sr_rt.c:        sr->routing_table->next = 0;
+sr_rt.c:        sr->routing_table->dest = dest;
+sr_rt.c:        sr->routing_table->gw   = gw;
+sr_rt.c:        sr->routing_table->mask = mask;
+sr_rt.c:        strncpy(sr->routing_table->interface,if_name,sr_IFACE_NAMELEN);
+sr_rt.c:    rt_walker = sr->routing_table;
+sr_rt.c:    if(sr->routing_table == 0)
+sr_rt.c:    rt_walker = sr->routing_table;
+sr_rt.c:  if(sr->routing_table == 0)
+sr_rt.c:  rt_walker = sr->routing_table;
+sr_vns_comm.c:    memset(&(sr->sr_addr),0,sizeof(struct sockaddr_in));
+sr_vns_comm.c:    sr->sr_addr.sin_family = AF_INET;
+sr_vns_comm.c:    sr->sr_addr.sin_port = htons(port);
+sr_vns_comm.c:    memcpy(&(sr->sr_addr.sin_addr),hp->h_addr,hp->h_length);
+sr_vns_comm.c:    if ((sr->sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+sr_vns_comm.c:    if (connect(sr->sockfd, (struct sockaddr *)&(sr->sr_addr),
+sr_vns_comm.c:                sizeof(sr->sr_addr)) < 0)
+sr_vns_comm.c:        close(sr->sockfd);
+sr_vns_comm.c:    if(strlen(sr->template) > 0) {
+sr_vns_comm.c:        strncpy(ot.templateName, sr->template, 30);
+sr_vns_comm.c:        strncpy(ot.mVirtualHostID, sr->host, IDSIZE);
+sr_vns_comm.c:        command.topoID = htons(sr->topo_id);
+sr_vns_comm.c:        strncpy( command.mVirtualHostID, sr->host,  IDSIZE);
+sr_vns_comm.c:        strncpy( command.mUID, sr->user, IDSIZE);
+sr_vns_comm.c:    if(send(sr->sockfd, buf, buf_len, 0) != buf_len)
+sr_vns_comm.c:    if(strlen(sr->template) > 0)
+sr_vns_comm.c:        len_username = strlen(sr->user);
+sr_vns_comm.c:        strcpy(ar->username, sr->user);
+sr_vns_comm.c:        if(send(sr->sockfd, buf, len, 0) != len) {
+sr_vns_comm.c:        printf("successfully authenticated as %s\n", sr->user);
+sr_vns_comm.c:        fprintf(stderr, "Authentication failed as %s: %s\n", sr->user, status->msg);
+sr_vns_comm.c:            if((ret = recv(sr->sockfd,((uint8_t*)&len) + bytes_read,
+sr_vns_comm.c:        close(sr->sockfd);
+sr_vns_comm.c:            if ((ret = read(sr->sockfd, buf+4+bytes_read, len - 4 - bytes_read)) ==
+sr_vns_comm.c:                close(sr->sockfd);
+sr_vns_comm.c:    if( write(sr->sockfd, sr_pkt, total_len) < total_len ){
+sr_vns_comm.c:    if(!sr->logfile)
+sr_vns_comm.c:    sr_dump(sr->logfile, &h, buf);
+sr_vns_comm.c:    fflush(sr->logfile);
