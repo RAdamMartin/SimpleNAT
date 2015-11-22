@@ -93,19 +93,21 @@ void sr_handlepacket(struct sr_instance* sr,
     enum sr_ethertype arp = ethertype_arp;
     enum sr_ethertype ip = ethertype_ip;
 
-    if(package_type==arp){
-      /* ARP protocol */
-      sr_handleARPpacket(sr, ether_packet, len, iface);
-    }else if(package_type==ip){
-      /* IP protocol */
-      if (sr->mode == 1){
-        sr_natHandleIP(sr,ether_packet,len,iface);
-      } else{
-        sr_handleIPpacket(sr, ether_packet,len, iface);
+    if (strcmp(iface->name,interface)){  
+      if(package_type==arp){
+        /* ARP protocol */
+        sr_handleARPpacket(sr, ether_packet, len, iface);
+      }else if(package_type==ip){
+        /* IP protocol */
+        if (sr->mode == 1){
+          sr_natHandleIP(sr,ether_packet,len,iface);
+        } else{
+          sr_handleIPpacket(sr, ether_packet,len, iface);
+        }
+      }else{
+        /* drop package */
+        printf("bad protocol! BOO! \n");
       }
-    }else{
-      /* drop package */
-       printf("bad protocol! BOO! \n");
     }
     free(ether_packet);
   }
