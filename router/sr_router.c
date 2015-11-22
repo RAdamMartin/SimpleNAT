@@ -93,7 +93,7 @@ void sr_handlepacket(struct sr_instance* sr,
     enum sr_ethertype arp = ethertype_arp;
     enum sr_ethertype ip = ethertype_ip;
 
-    if (strcmp(iface->name,interface)){ 
+    if (strcmp(iface->name,interface) == 0){ 
       printf("Right interface\n"); 
       if(package_type==arp){
         /* ARP protocol */
