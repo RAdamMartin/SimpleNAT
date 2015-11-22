@@ -138,7 +138,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       icmp_packet = createICMP(11, 0, ip_packet,len-14);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
-      len = 14+20+8+28;/*(len-34<28?len-34:28);*/
+      len = SIZE_ETH+SIZE_IP+SIZE_ICMP;/*(len-34<28?len-34:28);*/
       ipHeader->ip_len = htons(len-14);
       free(icmp_packet);      
     } else if (entry && rt) {    /* found next hop. send packet */
@@ -164,7 +164,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       print_hdr_ip(((sr_icmp_t3_hdr_t*)icmp_packet)->data);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
-      len = 14+20+8+28;/*(len-34<28?len-34:28);*/
+      len = SIZE_ETH+SIZE_IP+SIZE_ICMP;/*(len-34<28?len-34:28);*/
       ipHeader->ip_len = htons(len-14);
       free(icmp_packet);      
     }
@@ -174,7 +174,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       icmp_packet = createICMP(3,3,ip_packet,len-14);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
-      len = 14+20+8+28;/*(len-34<28?len-34:28);*/
+      len = SIZE_ETH+SIZE_IP+SIZE_ICMP;/*(len-34<28?len-34:28);*/
       ipHeader->ip_len = htons(len-14);
       free(icmp_packet);
     }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){ /* IP ping */
@@ -204,7 +204,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
   if(ip_packet){  /* send ICMP packet */
     ipHeader->ip_dst = ipHeader->ip_src;
     ipHeader->ip_src = iface->ip;
-    ipHeader->ip_ttl = 64;
+    ipHeader->ip_ttl = INIT_TTL;
     ipHeader->ip_sum = 0;
     ipHeader->ip_sum = cksum(ip_packet,20);
 

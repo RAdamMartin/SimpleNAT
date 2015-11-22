@@ -31,6 +31,11 @@
 #define INIT_TTL 255
 #define PACKET_DUMP_SIZE 1024
 
+#define SIZE_ETH sizeof(sr_ethernet_hdr_t)
+#define SIZE_IP sizeof(sr_ip_hdr_t)
+#define SIZE_ARP sizeof(sr_arp_hdr_t)
+#define SIZE_ICMP sizeof(sr_icmp_t3_hdr_t)
+
 /* forward declare */
 struct sr_if;
 struct sr_rt;
