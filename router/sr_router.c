@@ -138,7 +138,8 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       icmp_packet = createICMP(11, 0, ip_packet,len-14);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));
+      len = 14+20+8+28;/*(len-34<28?len-34:28);*/
+      ipHeader->ip_len = htons(len-14);
       free(icmp_packet);      
     } else if (entry && rt) {    /* found next hop. send packet */
       iface = sr_get_interface(sr, rt->interface);
@@ -163,7 +164,8 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       print_hdr_ip(((sr_icmp_t3_hdr_t*)icmp_packet)->data);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));;
+      len = 14+20+8+28;/*(len-34<28?len-34:28);*/
+      ipHeader->ip_len = htons(len-14);
       free(icmp_packet);      
     }
   }
@@ -171,9 +173,9 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     if(ipHeader->ip_p==6 || ipHeader->ip_p==17){  /* IP TCP/UDP */
       icmp_packet = createICMP(3,3,ip_packet,len-14);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
-      
       ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));
+      len = 14+20+8+28;/*(len-34<28?len-34:28);*/
+      ipHeader->ip_len = htons(len-14);
       free(icmp_packet);
     }else if(ipHeader->ip_tos==0 && ipHeader->ip_p==1){ /* IP ping */
 	    sr_icmp_hdr_t * icmp_header = (sr_icmp_hdr_t *) (packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
@@ -299,13 +301,13 @@ void sr_natHandleIP(struct sr_instance* sr, uint8_t* packet,unsigned int len, st
   ipHeader->ip_sum = incm_cksum;
   uint8_t* icmp_packet;
 
-  /* if the destination address is not one of my routers interfaces */
-  if (currentChecksum==incm_cksum && sr_get_interface_from_ip(sr,ntohl(ipHeader->ip_dst)) == NULL){
+  /* if the destination address is one of my interfaces */
+  if (currentChecksum==incm_cksum && sr_get_interface_from_ip(sr,ntohl(ipHeader->ip_dst)) != NULL){
     /* check cache for ip->mac mapping for next hop */
-    struct sr_arpentry *entry;
+    /*struct sr_arpentry *entry;
     entry = sr_arpcache_lookup(&sr->cache, ipHeader->ip_dst);
     struct sr_rt * rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ipHeader->ip_dst);
-
+*/
     /* found next hop. send packet */
     if (ipHeader->ip_ttl <= 1){   /* IP TTL died. send ICMP type 11, code 0 */
       icmp_packet = createICMP(11, 0, ip_packet,len-14);
@@ -313,35 +315,7 @@ void sr_natHandleIP(struct sr_instance* sr, uint8_t* packet,unsigned int len, st
       ipHeader->ip_p = 1;
       ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));
       free(icmp_packet);      
-    } else if (entry && rt) {    /* found next hop. send packet */
-      iface = sr_get_interface(sr, rt->interface);
-      ipHeader->ip_ttl = ipHeader->ip_ttl - 1;
-      ipHeader->ip_sum = 0;
-      ipHeader->ip_sum = cksum(ip_packet,20);
-
-      set_addr(ethHeader, iface->addr, entry->mac);
-
-      sr_send_packet(sr,packet,len,iface->name);
-      free(entry);
-      ip_packet = NULL;
-    } else if (rt) { /* send an arp request to find out what the next hop should be */
-      struct sr_arpreq *req;
-      sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
-      req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
-      handle_arpreq(sr, req);
-      ip_packet = NULL;
-    } else {  /* no route found. send ICMP type 3, code 0 */
-      printf("No route found for:\n");
-      icmp_packet = createICMP(3, 0, ip_packet,len-14);
-      print_hdr_ip(((sr_icmp_t3_hdr_t*)icmp_packet)->data);
-      memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
-      ipHeader->ip_p = 1;
-      ipHeader->ip_len = htons(20+8+(len-34<28?len-34:28));;
-      free(icmp_packet);      
-    }
-  }
-  else if(currentChecksum==incm_cksum){
-    if(ipHeader->ip_p==6 || ipHeader->ip_p==17){  /* IP TCP/UDP */
+    } else if(ipHeader->ip_p==6){  /* IP TCP */
       icmp_packet = createICMP(3,3,ip_packet,len-14);
       memcpy(ip_packet+20,icmp_packet,sizeof(sr_icmp_t3_hdr_t));
       

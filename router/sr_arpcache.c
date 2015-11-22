@@ -358,7 +358,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         ipHeader->ip_ttl = 64;
         ipHeader->ip_sum = 0;
         ipHeader->ip_p = 1;
-        ipHeader->ip_len = htons(24+(packet->len<28?packet->len:28));
+        ipHeader->ip_len = htons(sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t));
         ipHeader->ip_sum = cksum((uint8_t *)ipHeader,20);        
 
         /*Setup Ethernet Header*/
