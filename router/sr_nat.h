@@ -1,6 +1,8 @@
 
 #ifndef SR_NAT_TABLE_H
 #define SR_NAT_TABLE_H
+#define SR_NAT_IF_INT "eth1"
+#define SR_NAT_IF_EXT "eth2"
 
 #include <inttypes.h>
 #include <time.h>
