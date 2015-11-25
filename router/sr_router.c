@@ -157,7 +157,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       struct sr_arpreq *req;
       sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
       req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
-      handle_arpreq(sr, req);
+      /*handle_arpreq(sr, req);*/
       ip_packet = NULL;
     } else {  /* no route found. send ICMP type 3, code 0 */
       printf("No route found for:\n");
@@ -224,7 +224,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
       struct sr_arpreq *req;
       sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
       req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
-      handle_arpreq(sr, req);
+      /*handle_arpreq(sr, req);*/
       ip_packet = NULL;
     }
   }
@@ -369,7 +369,7 @@ void sr_natHandleIP(struct sr_instance* sr, uint8_t* packet,unsigned int len, st
       struct sr_arpreq *req;
       sr_arpcache_insert(&(sr->cache), ethHeader->ether_shost, ipHeader->ip_src);
       req = sr_arpcache_queuereq(&(sr->cache), ipHeader->ip_dst, packet, len, iface->name);
-      handle_arpreq(sr, req);
+      /*handle_arpreq(sr, req);*/
       ip_packet = NULL;
     }
   }

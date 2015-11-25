@@ -1,7 +1,6 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 #include <time.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -11,72 +10,7 @@
 #include "sr_router.h"
 #include "sr_if.h"
 #include "sr_protocol.h"
-#include "sr_utils.h"
-
-/* This file defines an ARP cache, which is made of two structures: an ARP
-   request queue, and ARP cache entries. The ARP request queue holds data about
-   an outgoing ARP cache request and the packets that are waiting on a reply
-   to that ARP cache request. The ARP cache entries hold IP->MAC mappings and
-   are timed out every SR_ARPCACHE_TO seconds.
-
-   Pseudocode for use of these structures follows.
-
-   --
-
-   # When sending packet to next_hop_ip
-   entry = arpcache_lookup(next_hop_ip)
-
-   if entry:
-       use next_hop_ip->mac mapping in entry to send the packet
-       free entry
-   else:
-       req = arpcache_queuereq(next_hop_ip, packet, len)
-       handle_arpreq(req)
-
-   --
-
-   The handle_arpreq() function is a function you should write, and it should
-   handle sending ARP requests if necessary:
-
-   function handle_arpreq(req):
-       if difftime(now, req->sent) > 1.0
-           if req->times_sent >= 5:
-               send icmp host unreachable to source addr of all pkts waiting
-                 on this request
-               arpreq_destroy(req)
-           else:
-               send arp request
-               req->sent = now
-               req->times_sent++
-
-   --
-
-   The ARP reply processing code should move entries from the ARP request
-   queue to the ARP cache:
-
-   # When servicing an arp reply that gives us an IP->MAC mapping
-   req = arpcache_insert(ip, mac)
-
-   if req:
-       send all packets on the req->packets linked list
-       arpreq_destroy(req)
-
-   --
-
-   To meet the guidelines in the assignment (ARP requests are sent every second
-   until we send 5 ARP requests, then we send ICMP host unreachable back to
-   all packets waiting on this ARP request), you must fill out the following
-   function that is called every second and is defined in sr_arpcache.c:
-
-   void sr_arpcache_sweepreqs(struct sr_instance *sr) {
-       for each request on sr->cache.requests:
-           handle_arpreq(request)
-   }
-
-   Since handle_arpreq as defined in the comments above could destroy your
-   current request, make sure to save the next pointer before calling
-   handle_arpreq when traversing through the ARP requests linked list.
- */
+#include "sr_icmp.h"
 
 /* 
   This function gets called every second. For each request sent out, we keep
@@ -86,13 +20,10 @@
 void sr_arpcache_sweepreqs(struct sr_instance *sr) { 
     /* Fill this in */
     struct sr_arpreq *req;
-    struct sr_arpreq *next_req;
-    pthread_mutex_lock(&(sr->cache.lock));
-    for (req = sr->cache.requests; req != NULL; req = next_req) {
-      next_req = req->next;
-      handle_arpreq(sr, req);
+
+    for (req = sr->cache.requests; req != NULL; req = req->next) {
+        sr_handle_arpreq(sr,req);
     }
-    pthread_mutex_unlock(&(sr->cache.lock));
 }
 
 /* You should not need to touch the rest of this code. */
@@ -159,7 +90,7 @@ struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
         new_pkt->buf = (uint8_t *)malloc(packet_len);
         memcpy(new_pkt->buf, packet, packet_len);
         new_pkt->len = packet_len;
-		    new_pkt->iface = (char *)malloc(sr_IFACE_NAMELEN);
+		new_pkt->iface = (char *)malloc(sr_IFACE_NAMELEN);
         strncpy(new_pkt->iface, iface, sr_IFACE_NAMELEN);
         new_pkt->next = req->packets;
         req->packets = new_pkt;
@@ -210,7 +141,7 @@ struct sr_arpreq *sr_arpcache_insert(struct sr_arpcache *cache,
         cache->entries[i].valid = 1;
     }
     
-    /*pthread_mutex_unlock(&(cache->lock));*/
+    pthread_mutex_unlock(&(cache->lock));
     
     return req;
 }
@@ -218,7 +149,7 @@ struct sr_arpreq *sr_arpcache_insert(struct sr_arpcache *cache,
 /* Frees all memory associated with this arp request entry. If this arp request
    entry is on the arp request queue, it is removed from the queue. */
 void sr_arpreq_destroy(struct sr_arpcache *cache, struct sr_arpreq *entry) {
-    /*pthread_mutex_lock(&(cache->lock));*/
+    pthread_mutex_lock(&(cache->lock));
     
     if (entry) {
         struct sr_arpreq *req, *prev = NULL, *next = NULL; 
@@ -320,98 +251,50 @@ void *sr_arpcache_timeout(void *sr_ptr) {
     return NULL;
 }
 
-/* Helper function to handle ARP requests */
-void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
-  time_t curtime = time(NULL);
-  struct sr_packet *packet;
-  struct sr_arpcache *cache = &(sr->cache);
-
-  if (difftime(curtime, req->sent) > 1.0) { 
-    /* send icmp host unreachable to source addr of all pkts waiting on this request  */
+void sr_handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req){
+    time_t curtime = time(NULL);
+    struct sr_packet *packet;
     if (req->times_sent >= 5) {
-      for (packet = req->packets; packet != NULL; packet = packet->next) {
-        assert(packet->buf);
-        sr_ip_hdr_t *ipDropped = (sr_ip_hdr_t *) (packet->buf + 14); 
-
-        struct sr_if* iface;
-        iface = sr_get_interface(sr, packet->iface);
-
-        uint8_t *outgoing = malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t));
-        sr_ethernet_hdr_t *ethHeader = (sr_ethernet_hdr_t *)outgoing;
-        sr_ip_hdr_t *ipHeader = (sr_ip_hdr_t *) (outgoing + 14);  
+        for (packet = req->packets; packet != NULL; packet = packet->next) {
+            sr_send_icmp(packet->buf, packet->len, 3, 1);
+        }
+        sr_arpreq_destroy(&sr->cache, req);
+    } 
+    else if (req->sent == 0 || difftime(curtime, req->sent) >= 1.0){
+        uint8_t *out = calloc(1,sizeof(sr_ethernet_hdr_t)+sizeof(sr_arp_hdr_t));
+        sr_ethernet_hdr_t *ethHeader = (sr_ethernet_hdr_t *)out;
+        sr_arp_hdr_t *arpHeader = (sr_arp_hdr_t *)(out+sizeof(sr_ethernet_hdr_t));
         
-        /* Get ICMP Packet*/
-        uint8_t* icmp_packet;
-        icmp_packet = createICMP(3, 1, (uint8_t *)ipDropped, ipDropped->ip_len);
-        memcpy(outgoing+34, icmp_packet, sizeof(sr_icmp_t3_hdr_t));
-        free(icmp_packet);
-
-        /*Setup IP Header*/
-        ipHeader->ip_hl = 5;
-        ipHeader->ip_v = 4;
-        ipHeader->ip_tos = 0;
-        ipHeader->ip_id = ipDropped->ip_id;
-        ipHeader->ip_dst = ipDropped->ip_src;
-        ipHeader->ip_src = iface->ip;
-        ipHeader->ip_ttl = INIT_TTL;
-        ipHeader->ip_off = htons(IP_DF);
-        ipHeader->ip_sum = 0;
-        ipHeader->ip_p = 1;
-        ipHeader->ip_len = htons(sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t));
-        ipHeader->ip_sum = cksum((uint8_t *)ipHeader,20);        
-
-        /*Setup Ethernet Header*/
-        set_addr(ethHeader, iface->addr, ethHeader->ether_shost);
-        ethHeader->ether_type = htons(0x0800);
-
-        sr_send_packet(sr, outgoing, sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t), packet->iface);
-        free(outgoing);
-      }
-      sr_arpreq_destroy(&sr->cache, req);
+        /* set ARPHeader to request */
+        arpHeader->ar_hrd = htons(0x0001); 
+        arpHeader->ar_pro = htons(0x800); 
+        arpHeader->ar_op = htons(0x0001);
+        arpHeader->ar_hln = 0x0006; 
+        arpHeader->ar_pln = 0x0004;
+        memset(arpHeader->ar_tha, 255, 6);
+        arpHeader->ar_tip = req->ip;
+        /* set Ethernet Header */
+        ethHeader->ether_type = htons(0x0806);
+        memset(ethHeader->ether_dhost, 255,6);
+    
+        /* get outgoing interface and send the request */
+        struct sr_if* if_walker = 0;
+        if_walker = sr->if_list;
+        while(if_walker)
+        {
+            arpHeader->ar_sip = if_walker->ip;
+            memcpy(arpHeader->ar_sha, if_walker->addr, 6);
+            memcpy(ethHeader->ether_shost, if_walker->addr, 6);
+            sr_send_packet (sr 
+                            ,out
+                            ,sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t)
+                            ,if_walker->name);
+            if_walker = if_walker->next;
+        }
+    
+        req->sent = curtime;
+        req->times_sent++;
+        free(out);
     }
 
-    /* send an arp request */
-    else {
-      packet = req->packets;
-      assert(packet->buf);
-      /*struct sr_ethernet_hdr *ethIncoming = (struct sr_ethernet_hdr *)(packet->buf);*/
-      sr_ip_hdr_t * ipIncoming = (sr_ip_hdr_t *)((packet->buf) + 14);
-
-      uint8_t * outgoing = (uint8_t*)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t));
-      sr_ethernet_hdr_t *ethHeader = (sr_ethernet_hdr_t *) outgoing;
-      sr_arp_hdr_t * arpHeader = (sr_arp_hdr_t *)(outgoing + sizeof(sr_ethernet_hdr_t));
-
-      /* set ARPHeader to request */
-      arpHeader->ar_hrd = htons(0x0001); 
-      arpHeader->ar_pro = htons(0x800); 
-      arpHeader->ar_op = htons(0x0001);
-      arpHeader->ar_hln = 0x0006; 
-      arpHeader->ar_pln = 0x0004;
-      memset(arpHeader->ar_tha, 255, 6);
-      arpHeader->ar_tip = ipIncoming->ip_dst;
-
-      /* set Ethernet Header */
-      ethHeader->ether_type = htons(0x0806);
-      memset(ethHeader->ether_dhost, 255,6);
-
-      /* get outgoing interface and send the request */
-      struct sr_if* if_walker = 0;
-      if_walker = sr->if_list;
-
-      while(if_walker)
-      {
-        arpHeader->ar_sip = if_walker->ip;
-        memcpy(arpHeader->ar_sha, if_walker->addr, 6);
-        memcpy(ethHeader->ether_shost, if_walker->addr, 6);
-
-        sr_send_packet(sr, outgoing, sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t), if_walker->name);
-        
-        if_walker = if_walker->next;
-      }
-
-      free(outgoing);
-      req->sent = curtime;
-      req->times_sent++;
-    }
-  }
 }
