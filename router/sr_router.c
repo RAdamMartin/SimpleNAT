@@ -207,6 +207,7 @@ void sr_handleIPpacket(struct sr_instance* sr, uint8_t* packet,unsigned int len,
     ipHeader->ip_src = iface->ip;
     ipHeader->ip_ttl = INIT_TTL;
     ipHeader->ip_sum = 0;
+    ipHeader->ip_off = htons(IP_DF);
     ipHeader->ip_sum = cksum(ip_packet,20);
 
     struct sr_arpentry *entry;

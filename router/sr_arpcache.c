@@ -354,8 +354,8 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req) {
         ipHeader->ip_id = ipDropped->ip_id;
         ipHeader->ip_dst = ipDropped->ip_src;
         ipHeader->ip_src = iface->ip;
-        ipHeader->ip_off = 0;
-        ipHeader->ip_ttl = 64;
+        ipHeader->ip_ttl = INIT_TTL;
+        ipHeader->ip_off = htons(IP_DF);
         ipHeader->ip_sum = 0;
         ipHeader->ip_p = 1;
         ipHeader->ip_len = htons(sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t));
