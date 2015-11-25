@@ -88,9 +88,8 @@ void handleARPpacket(struct sr_instance *sr,
         arp_header->ar_tip = temp;
         memcpy(arp_header->ar_tha, arp_header->ar_sha,6);
         memcpy(arp_header->ar_sha, iface->addr,6);
-        /*swapping outgoing and incoming addr*/
         memcpy(eth_header->ether_dhost, eth_header->ether_shost,6);
-        memcpy(eth_header->ether_dhost, iface->addr,6);
+        memcpy(eth_header->ether_shost, iface->addr,6);/*ENDIANESS*/
         sr_send_packet(sr
                        ,packet
                        ,sizeof(sr_ethernet_hdr_t)+sizeof(sr_arp_hdr_t)
