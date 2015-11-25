@@ -22,7 +22,6 @@
 #include "sr_protocol.h"
 #include "sr_arpcache.h"
 #include "sr_utils.h"
-#include "sr_icmp.h"
 
 /*---------------------------------------------------------------------
  * Method: sr_init(void)
@@ -52,7 +51,7 @@ void sr_init(struct sr_instance* sr)
 
 } /* -- sr_init -- */
 
-void sr_handleIPpacket(struct sr_instance* sr, 
+void handleIPPacket(struct sr_instance* sr, 
         uint8_t* packet,
         unsigned int len, 
         struct sr_if * iface)
@@ -70,7 +69,7 @@ void sr_handleIPpacket(struct sr_instance* sr,
     printf("TODO: Implement IP\n");
 }
 
-void sr_handleARPpacket(struct sr_instance *sr,
+void handleARPpacket(struct sr_instance *sr,
         uint8_t* packet, 
         unsigned int len, 
         struct sr_if * iface)
@@ -152,12 +151,17 @@ void sr_handlepacket(struct sr_instance* sr,
         memcpy(ether_packet,packet,len);
         uint16_t packet_type = ethertype(ether_packet);
         if(packet_type == ethertype_arp){
-            sr_handleARPpacket(sr, ether_packet, len, iface);
+            handleARPpacket(sr, ether_packet, len, iface);
         }else if(packet_type==ethertype_ip){
-            sr_handleIPpacket(sr, ether_packet, len, iface);
+            handleIPPacket(sr, ether_packet, len, iface);
         }else{
             printf("Unsupported Protocol!\n");
         }
         free(ether_packet);
     }
 }/* end sr_ForwardPacket */
+
+void sr_send_icmp(uint8_t *buf, unsigned int len, unsigned int type, unsigned int code){
+	printf("TODO: Send ICMP type %d code %d to\n",type, code);
+	print_hdrs(buf,(uint32_t)len);
+}

@@ -10,7 +10,6 @@
 #include "sr_router.h"
 #include "sr_if.h"
 #include "sr_protocol.h"
-#include "sr_icmp.h"
 
 /* 
   This function gets called every second. For each request sent out, we keep
@@ -256,7 +255,7 @@ void sr_handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req){
     struct sr_packet *packet;
     if (req->times_sent >= 5) {
         for (packet = req->packets; packet != NULL; packet = packet->next) {
-            sr_send_icmp(packet->buf, packet->len, 3, 1);
+/*TODO*/            sr_send_icmp(packet->buf, packet->len, 3, 1);
         }
         sr_arpreq_destroy(&sr->cache, req);
     } 
@@ -272,7 +271,7 @@ void sr_handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req){
         arpHeader->ar_hln = 0x0006; 
         arpHeader->ar_pln = 0x0004;
         memset(arpHeader->ar_tha, 255, 6);
-        arpHeader->ar_tip = req->ip;
+        arpHeader->ar_tip = req->ip;/*ENDIANESS*/
         /* set Ethernet Header */
         ethHeader->ether_type = htons(0x0806);
         memset(ethHeader->ether_dhost, 255,6);
@@ -283,7 +282,7 @@ void sr_handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req){
         while(if_walker)
         {
             arpHeader->ar_sip = if_walker->ip;
-            memcpy(arpHeader->ar_sha, if_walker->addr, 6);
+            memcpy(arpHeader->ar_sha, if_walker->addr, 6);/*ENDIANESS*/
             memcpy(ethHeader->ether_shost, if_walker->addr, 6);
             sr_send_packet (sr 
                             ,out
@@ -296,5 +295,4 @@ void sr_handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req){
         req->times_sent++;
         free(out);
     }
-
 }
