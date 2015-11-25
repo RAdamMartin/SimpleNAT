@@ -56,16 +56,23 @@ void handleIPPacket(struct sr_instance* sr,
         unsigned int len, 
         struct sr_if * iface)
 {
-    /*sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;
-        if(strcmp(eth_header->ar_tha,iface->addr) != 0){
-            printf("")
-        }
-        else 
-    sr_ip_hdr_t * ip_header = (sr_ip_hdr_t *) (packet+sizeof(sr_ethernet_hdr_t));
+    sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;
+    sr_ip_hdr_t * ip_header = (sr_ip_hdr_t *)(packet+sizeof(sr_ethernet_hdr_t));
+    struct sr_if *interface= sr_get_interface_from_ip(sr,ip_header->ip_dst);
+
     uint16_t incm_cksum = ip_header->ip_sum;
     ip_header->ip_sum = 0;
-    uint16_t currentChecksum = cksum(ip_packet,20);
-    ip_header->ip_sum = incm_cksum;*/
+    uint16_t calc_cksum = cksum((uint8_t*)ip_header,20);
+    ip_header->ip_sum = incm_cksum;
+    if (calc_cksum != incm_cksum){/* || strcmp(iface->addr,eth_header->ether_dhost) != 0){*/
+        printf("Bad cksum/interface mismatch\n");
+    } else if (ip_header->ip_ttl <= 1){
+        printf("Packet died\n");
+    } else if (interface){
+        printf("For us\n");
+    } else {
+        printf("Not for us\n");
+    }
     printf("TODO: Implement IP\n");
 }
 
@@ -95,7 +102,7 @@ void handleARPpacket(struct sr_instance *sr,
                        ,sizeof(sr_ethernet_hdr_t)+sizeof(sr_arp_hdr_t)
                        ,iface->name);
     }
-    else if (ntohs(arp_header->ar_op) == arp_op_reply){
+    else if (ntohs(arp_header->ar_op) == arp_op_reply){/*} && strcmp(iface->addr,eth_header->ether_dhost) == 0){*/
         printf("Processing ARP reply\n");
         struct sr_arpreq *req;
         struct sr_packet *pckt;
