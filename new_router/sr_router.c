@@ -246,7 +246,6 @@ void sr_send_icmp(struct sr_instance* sr,
         icmp_header->icmp_code = code;
         icmp_header->icmp_sum = 0;
         icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,data_size+sizeof(sr_icmp_hdr_t));
-        print_hdr_icmp((uint8_t*)icmp_header);
         memcpy(eth_header->ether_shost,iface->addr,6);
         eth_header->ether_type = htons(0x0800);
         if (ip_src == 0){
