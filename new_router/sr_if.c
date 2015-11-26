@@ -24,6 +24,7 @@
 
 #include "sr_if.h"
 #include "sr_router.h"
+#include "sr_utils.h"
 
 /*--------------------------------------------------------------------- 
  * Method: sr_get_interface
@@ -197,8 +198,12 @@ struct sr_if *sr_get_interface_from_ip(struct sr_instance* sr, uint32_t ip)
 {
     struct sr_if* if_walker = 0;
     if_walker = sr->if_list;
+    printf("searching for: ");
+    print_addr_ip_int(ip);
     while(if_walker)
     {
+        printf("Comparing to ");
+        print_addr_ip_int(if_walker->ip);
         if (if_walker->ip == ip){
             return if_walker;
         }
