@@ -194,7 +194,7 @@ void sr_send_icmp(struct sr_instance* sr,
         unsigned int type, 
         unsigned int code,
         uint32_t ip_src){
-	printf("TODO: Send ICMP type %d code %d to\n",type, code);
+	printf("Send ICMP type %d code %d to\n",type, code);
 	print_hdrs(buf,(uint32_t)len);
 
     uint8_t* packet = malloc(len+SIZE_ICMP);
@@ -208,6 +208,7 @@ void sr_send_icmp(struct sr_instance* sr,
     rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ip_header->ip_src);
     
     if(rt){
+        printf("Found route\n");
         iface = sr_get_interface(sr, rt->interface);
         
         size_t data_size = ICMP_DATA_SIZE;
@@ -243,10 +244,12 @@ void sr_send_icmp(struct sr_instance* sr,
       
         entry = sr_arpcache_lookup(&sr->cache, ip_header->ip_dst);
         if (entry){
+            printf("Found cache hit\n");
             memcpy(eth_header->ether_dhost,entry->mac,6);
             sr_send_packet(sr,packet,len,iface->name);
             free(entry);
         } else {
+            printf("Adding ARP Request\n");
             struct sr_arpreq *req;
             req = sr_arpcache_queuereq(&(sr->cache), 
                                         ip_header->ip_dst, 
