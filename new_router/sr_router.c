@@ -238,7 +238,7 @@ void sr_send_icmp(struct sr_instance* sr,
         ip_header->ip_src = ip_src;
         ip_header->ip_ttl = INIT_TTL;
         ip_header->ip_sum = 0;
-        ip_header->ip_p = htons(1);
+        ip_header->ip_p = 1;
         ip_header->ip_off = htons(IP_DF);
         ip_header->ip_len = htons(len-SIZE_ETH);
         ip_header->ip_sum = cksum((uint8_t*)(ip_header),SIZE_IP);

@@ -255,7 +255,7 @@ void sr_handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req){
     struct sr_packet *packet;
     if (req->times_sent >= 5) {
         for (packet = req->packets; packet != NULL; packet = packet->next) {
-/*TODO*/            sr_send_icmp(sr, packet->buf, packet->len, 3, 1, 0);
+            sr_send_icmp(sr, packet->buf, packet->len, 3, 1, 0);
         }
         sr_arpreq_destroy(&sr->cache, req);
     } 
