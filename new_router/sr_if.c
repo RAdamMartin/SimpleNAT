@@ -198,13 +198,13 @@ struct sr_if *sr_get_interface_from_ip(struct sr_instance* sr, uint32_t ip)
 {
     struct sr_if* if_walker = 0;
     if_walker = sr->if_list;
-    printf("searching for: ");
-    print_addr_ip_int(ip);
+    fprintf(stderr,"searching for: ");
+    print_addr_ip_int(htonl(ip));
     while(if_walker)
     {
-        printf("Comparing to ");
-        print_addr_ip_int(if_walker->ip);
-        if (if_walker->ip == ip){
+        fprintf(stderr,"Comparing to ");
+        print_addr_ip_int(htonl(if_walker->ip));
+        if (htonl(if_walker->ip) == htonl(ip)){
             return if_walker;
         }
         if_walker = if_walker->next; 
