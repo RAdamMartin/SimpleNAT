@@ -229,7 +229,7 @@ void sr_send_icmp(struct sr_instance* sr,
     rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ip_header->ip_src);
     
     if(rt){
-        printf("Found route\n");
+        printf("Found route %s\n",rt->interface);
         iface = sr_get_interface(sr, rt->interface);
         
         size_t data_size = ICMP_DATA_SIZE;
