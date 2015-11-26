@@ -215,7 +215,6 @@ void sr_send_icmp(struct sr_instance* sr,
         unsigned int code,
         uint32_t ip_src){
 	printf("Send ICMP type %d code %d to\n",type, code);
-	print_hdrs(buf,(uint32_t)len);
 
     uint8_t* packet = malloc(len+SIZE_ICMP);
     memcpy(packet,buf,len);
