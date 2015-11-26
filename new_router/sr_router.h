@@ -67,7 +67,7 @@ int sr_read_from_server(struct sr_instance* );
 /* -- sr_router.c -- */
 void sr_init(struct sr_instance* );
 void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
-void sr_send_icmp(uint8_t *buf, unsigned int len, unsigned int type, unsigned int code);
+void sr_send_icmp(struct sr_instance* sr, uint8_t *packet, unsigned int len, unsigned int type, unsigned int code, uint32_t ip_src);
 
 /* -- sr_if.c -- */
 void sr_add_interface(struct sr_instance* , const char* );

@@ -117,10 +117,10 @@ void handleIPPacket(struct sr_instance* sr,
         printf("For us\n");
         if(ip_header->ip_p==6){ /*TCP*/
             printf("TCP\n");
-            sr_send_icmp(packet, len, 3, 3);
+            sr_send_icmp(sr, packet, len, 3, 3, 0);
         } else if (ip_header->ip_p==17){ /*UDP*/
             printf("UDP\n");
-            sr_send_icmp(packet, len, 3, 3);
+            sr_send_icmp(sr, packet, len, 3, 3, 0);
         } else if (ip_header->ip_p==1 && ip_header->ip_tos==0){ /*ICMP*/
             printf("ICMP\n");
             sr_icmp_hdr_t* icmp_header = (sr_icmp_hdr_t *)(packet+SIZE_ETH+SIZE_IP);
@@ -133,15 +133,15 @@ void handleIPPacket(struct sr_instance* sr,
             if (incm_cksum != calc_cksum){
                 printf("Bad cksum %d != %d\n", incm_cksum, calc_cksum);
             } else if (type == 8 && code == 0) {
-                sr_send_icmp(packet, len, 0, 0);
+                sr_send_icmp(sr, packet, len, 0, 0, ip_header->ip_dst);
             }
         }
     } else if (ip_header->ip_ttl <= 1){
         printf("Packet died\n");
+        sr_send_icmp(sr, packet, len, 11, 0,0);
     } else {
         printf("Not for us\n");
     }
-    printf("TODO: Implement IP\n");
 }
 
 /*---------------------------------------------------------------------
@@ -188,7 +188,73 @@ void sr_handlepacket(struct sr_instance* sr,
     }
 }/* end sr_ForwardPacket */
 
-void sr_send_icmp(uint8_t *buf, unsigned int len, unsigned int type, unsigned int code){
+void sr_send_icmp(struct sr_instance* sr,
+        uint8_t *buf,
+        unsigned int len, 
+        unsigned int type, 
+        unsigned int code,
+        uint32_t ip_src){
 	printf("TODO: Send ICMP type %d code %d to\n",type, code);
 	print_hdrs(buf,(uint32_t)len);
+
+    uint8_t* packet = malloc(len+SIZE_ICMP);
+    memcpy(packet,buf,len);
+    sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;
+    sr_ip_hdr_t* ip_header = (sr_ip_hdr_t*)(packet+SIZE_ETH);
+    sr_icmp_t3_hdr_t* icmp_header = (sr_icmp_t3_hdr_t*)(packet+SIZE_ETH+SIZE_IP);
+    struct sr_rt* rt;
+    struct sr_arpentry *entry;
+    struct sr_if* iface;
+    rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ip_header->ip_src);
+    
+    if(rt){
+        iface = sr_get_interface(sr, rt->interface);
+        
+        size_t data_size = ICMP_DATA_SIZE;
+        if(type!=0 || code != 0){
+            if (len < SIZE_ETH+ICMP_DATA_SIZE){
+                data_size = len-SIZE_ETH-SIZE_IP;
+            }
+            memcpy(icmp_header->data,buf+SIZE_ETH,data_size);
+            len = SIZE_ETH+SIZE_IP+SIZE_ICMP;
+        }
+        icmp_header->icmp_type = htons(type);
+        icmp_header->icmp_code = htons(code);
+        icmp_header->unused = 0;
+        icmp_header->next_mtu = 0;
+        icmp_header->icmp_sum = 0;
+        icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,data_size+4);
+        
+        memcpy(eth_header->ether_shost,iface->addr,6);
+        if (ip_src == 0){
+            ip_src = iface->ip;
+        }
+        ip_header->ip_hl = 5;
+        ip_header->ip_v = 4;
+        ip_header->ip_tos = 0;
+        ip_header->ip_dst = ip_header->ip_src;
+        ip_header->ip_src = ip_src;
+        ip_header->ip_ttl = INIT_TTL;
+        ip_header->ip_sum = 0;
+        ip_header->ip_p = htons(1);
+        ip_header->ip_off = htons(IP_DF);
+        ip_header->ip_len = htons(len-SIZE_ETH);
+        ip_header->ip_sum = cksum((uint8_t*)(ip_header),SIZE_IP);
+      
+        entry = sr_arpcache_lookup(&sr->cache, ip_header->ip_dst);
+        if (entry){
+            memcpy(eth_header->ether_dhost,entry->mac,6);
+            sr_send_packet(sr,packet,len,iface->name);
+            free(entry);
+        } else {
+            struct sr_arpreq *req;
+            req = sr_arpcache_queuereq(&(sr->cache), 
+                                        ip_header->ip_dst, 
+                                        packet, 
+                                        len, 
+                                        iface->name);
+            sr_handle_arpreq(sr,req);
+        }
+    }
+    
 }
