@@ -204,7 +204,7 @@ struct sr_if *sr_get_interface_from_ip(struct sr_instance* sr, uint32_t ip)
     {
         fprintf(stderr,"Comparing to ");
         print_addr_ip_int(htonl(if_walker->ip));
-        if (htonl(if_walker->ip) == htonl(ip)){
+        if (if_walker->ip == ip){
             return if_walker;
         }
         if_walker = if_walker->next; 

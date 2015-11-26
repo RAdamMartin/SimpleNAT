@@ -149,7 +149,7 @@ void handleIPPacket(struct sr_instance* sr,
         if (rt && entry) {
             printf("Found cache hit\n");
             memcpy(eth_header->ether_dhost,entry->mac,6);
-            sr_send_packet(sr,packet,len,interface->name);
+            sr_send_packet(sr,packet,len,iface->name);
             free(entry);
         } else if (rt) {
             printf("Adding ARP Request\n");
@@ -158,7 +158,7 @@ void handleIPPacket(struct sr_instance* sr,
                                         ip_header->ip_dst, 
                                         packet, 
                                         len, 
-                                        interface->name);
+                                        iface->name);
             sr_handle_arpreq(sr,req);
         } else {
             sr_send_icmp(sr, packet, len, 3, 0, 0);
