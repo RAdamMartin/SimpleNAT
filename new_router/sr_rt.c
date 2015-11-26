@@ -216,6 +216,9 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
                 break;
             }
         }
+        if (max == -1){
+            break;
+        }
         /*
         printf("%u=%u\n",rt_entry&(1<<i), ip&(1<<i));
         if (max == 0 && rt_entry&(1<<i) != ip&(1<<i)){
