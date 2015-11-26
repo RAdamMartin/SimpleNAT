@@ -142,6 +142,25 @@ void handleIPPacket(struct sr_instance* sr,
         sr_send_icmp(sr, packet, len, 11, 0,0);
     } else {
         printf("Not for us\n");
+        struct sr_rt* rt;
+        struct sr_arpentry *entry;
+        rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ip_header->ip_src);
+        entry = sr_arpcache_lookup(&sr->cache, ip_header->ip_dst);
+        if (rt && entry) {
+            printf("Found cache hit\n");
+            memcpy(eth_header->ether_dhost,entry->mac,6);
+            sr_send_packet(sr,packet,len,interface->name);
+            free(entry);
+        } else if (rt) {
+            printf("Adding ARP Request\n");
+            struct sr_arpreq *req;
+            req = sr_arpcache_queuereq(&(sr->cache), 
+                                        ip_header->ip_dst, 
+                                        packet, 
+                                        len, 
+                                        interface->name);
+            sr_handle_arpreq(sr,req);
+        }
     }
 }
 
