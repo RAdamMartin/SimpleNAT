@@ -213,8 +213,8 @@ void sr_handlepacket(struct sr_instance* sr,
 void sr_send_icmp(struct sr_instance* sr,
         uint8_t *buf,
         unsigned int len, 
-        unsigned int type, 
-        unsigned int code,
+        uint8_t type, 
+        uint8_t code,
         uint32_t ip_src){
 	printf("Send ICMP type %d code %d to\n",type, code);
 
