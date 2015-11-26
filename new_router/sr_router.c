@@ -218,12 +218,12 @@ void sr_send_icmp(struct sr_instance* sr,
                 data_size = len-SIZE_ETH-SIZE_IP;
             }
             memcpy(icmp_header->data,buf+SIZE_ETH,data_size);
+            icmp_header->unused = 0;
+            icmp_header->next_mtu = 0;
             len = SIZE_ETH+SIZE_IP+SIZE_ICMP;
         }
         icmp_header->icmp_type = htons(type);
         icmp_header->icmp_code = htons(code);
-        icmp_header->unused = 0;
-        icmp_header->next_mtu = 0;
         icmp_header->icmp_sum = 0;
         icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,data_size+sizeof(sr_icmp_hdr_t));
         
