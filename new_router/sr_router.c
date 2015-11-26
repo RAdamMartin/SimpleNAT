@@ -225,22 +225,24 @@ void sr_send_icmp(struct sr_instance* sr,
         icmp_header->unused = 0;
         icmp_header->next_mtu = 0;
         icmp_header->icmp_sum = 0;
-        icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,data_size+4);
+        icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,data_size+sizeof(sr_icmp_hdr_t));
         
         memcpy(eth_header->ether_shost,iface->addr,6);
+        eth_header->ether_type = htons(0x0800);
         if (ip_src == 0){
             ip_src = iface->ip;
         }
         ip_header->ip_hl = 5;
         ip_header->ip_v = 4;
         ip_header->ip_tos = 0;
+        ip_header->ip_len = htons(len-SIZE_ETH);
+        /*ip_header->ip_id = ip_header->ip_id*/
+        ip_header->ip_off = htons(IP_DF);
+        ip_header->ip_ttl = INIT_TTL;
+        ip_header->ip_p = 1;
+        ip_header->ip_sum = 0;
         ip_header->ip_dst = ip_header->ip_src;
         ip_header->ip_src = ip_src;
-        ip_header->ip_ttl = INIT_TTL;
-        ip_header->ip_sum = 0;
-        ip_header->ip_p = 1;
-        ip_header->ip_off = htons(IP_DF);
-        ip_header->ip_len = htons(len-SIZE_ETH);
         ip_header->ip_sum = cksum((uint8_t*)(ip_header),SIZE_IP);
       
         entry = sr_arpcache_lookup(&sr->cache, ip_header->ip_dst);
