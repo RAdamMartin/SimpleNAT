@@ -200,7 +200,7 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
     uint32_t rt_entry = (rt_ip&rt_msk);
     unsigned int i = 0;
     for (i=0; i <32; i++){
-        printf("%d=%d\n",rt_entry<<i, ip<<i);
+        printf("%u=%u\n",rt_entry&(1<<i), ip&(1<<i));
     }
     print_addr_ip_int(rt_entry);
     uint32_t match = ip&rt_entry;
