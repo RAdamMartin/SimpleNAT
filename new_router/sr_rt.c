@@ -192,13 +192,13 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
   rt_walker = sr->routing_table;
   printf("Finding LPM for\n");
   print_addr_ip_int(ip);
+  ip = ntohl(ip);
   while(rt_walker)
   {
-    print_addr_ip(rt_walker->dest);
-    print_addr_ip_int((uint32_t)(rt_walker->dest.s_addr));
-    uint32_t rt_ip = (rt_walker->mask.s_addr)&(rt_walker->dest.s_addr);
-    uint32_t match = ip&rt_ip;
-    if (match > best_match && match == rt_ip){
+    uint32_t rt_ip = ntohl((uint32_t)(rt_walker->dest.s_addr));
+    uint32_t rt_msk = ntohl((uint32_t)(rt_walker->mask.s_addr));
+    uint32_t match = ip&rt_ip&rt_msk;
+    if (match > best_match && match == (rt_ip&rt_msk)){
         printf("Found match for %d with %d\n",ip, rt_ip);
         best_match = match;
         rt = rt_walker;
