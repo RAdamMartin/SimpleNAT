@@ -190,12 +190,12 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
   }
 
   rt_walker = sr->routing_table;
-
   while(rt_walker)
   {
     uint32_t rt_ip = (rt_walker->mask.s_addr)&(rt_walker->dest.s_addr);
     uint32_t match = ip&rt_ip;
     if (match > best_match && match == rt_ip){
+        printf("Found match for %d with %d\n",ip, rt_ip);
         best_match = match;
         rt = rt_walker;
     }
