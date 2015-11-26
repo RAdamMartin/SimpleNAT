@@ -45,8 +45,6 @@
 #define IP_MAXPACKET 65535
 #endif
 
-
-
 /* FIXME
  * ohh how lame .. how very, very lame... how can I ever go out in public
  * again?! /mc
@@ -76,6 +74,10 @@
 #endif
 #define ICMP_DATA_SIZE 28
 
+#define SIZE_ETH sizeof(sr_ethernet_hdr_t)
+#define SIZE_IP sizeof(sr_ip_hdr_t)
+#define SIZE_ARP sizeof(sr_arp_hdr_t)
+#define SIZE_ICMP sizeof(sr_icmp_t3_hdr_t)
 
 /* Structure of a ICMP header
  */
