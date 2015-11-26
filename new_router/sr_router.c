@@ -83,6 +83,7 @@ void handleARPpacket(struct sr_instance *sr,
         struct sr_packet *pckt;
         req = sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
         if(req){
+            printf("Clearing queue\n");
             /*struct sr_rt * rt = (struct sr_rt *)sr_find_routing_entry_int(sr, req->ip);*/
             for (pckt = req->packets; pckt != NULL; pckt = pckt->next){
                 sr_ethernet_hdr_t * outEther = (sr_ethernet_hdr_t *)pckt->buf;
