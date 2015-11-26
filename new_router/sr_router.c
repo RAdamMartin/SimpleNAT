@@ -148,11 +148,15 @@ void handleIPPacket(struct sr_instance* sr,
         entry = sr_arpcache_lookup(&sr->cache, ip_header->ip_dst);
         if (rt && entry) {
             printf("Found cache hit\n");
+            iface = sr_get_interface(sr, rt->interface);
             memcpy(eth_header->ether_dhost,entry->mac,6);
+            memcpy(eth_header->ether_shost,iface->addr,6);
             sr_send_packet(sr,packet,len,iface->name);
             free(entry);
         } else if (rt) {
             printf("Adding ARP Request\n");
+            iface = sr_get_interface(sr, rt->interface);
+            memcpy(eth_header->ether_shost,iface->addr,6);
             struct sr_arpreq *req;
             req = sr_arpcache_queuereq(&(sr->cache), 
                                         ip_header->ip_dst, 
