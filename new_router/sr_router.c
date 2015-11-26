@@ -144,7 +144,7 @@ void handleIPPacket(struct sr_instance* sr,
         printf("Not for us\n");
         struct sr_rt* rt;
         struct sr_arpentry *entry;
-        rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ip_header->ip_src);
+        rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ip_header->ip_dst);
         entry = sr_arpcache_lookup(&sr->cache, ip_header->ip_dst);
         if (rt && entry) {
             printf("Found cache hit\n");
