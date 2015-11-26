@@ -197,8 +197,13 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
   {
     uint32_t rt_ip = (uint32_t)(rt_walker->dest.s_addr);
     uint32_t rt_msk = (uint32_t)(rt_walker->mask.s_addr);
-    print_addr_ip_int(rt_ip&rt_msk);
-    uint32_t match = ip&rt_ip&rt_msk;
+    uint32_t rt_entry = (rt_ip&rt_msk);
+    unsigned int i = 0;
+    for (i=0; i <32; i++){
+        printf("%d=%d\n",rt_entry<<i, ip<<i);
+    }
+    print_addr_ip_int(rt_entry);
+    uint32_t match = ip&rt_entry;
     if (match > best_match && match == (rt_ip&rt_msk)){
         printf("Found match for %d with %d\n",ip, rt_ip);
         best_match = match;
