@@ -160,6 +160,8 @@ void handleIPPacket(struct sr_instance* sr,
                                         len, 
                                         interface->name);
             sr_handle_arpreq(sr,req);
+        } else {
+            sr_send_icmp(sr, packet, len, 3, 0, 0);
         }
     }
 }
