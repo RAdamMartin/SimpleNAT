@@ -233,7 +233,7 @@ void sr_send_icmp(struct sr_instance* sr,
         iface = sr_get_interface(sr, rt->interface);
         
         size_t data_size = ICMP_DATA_SIZE;
-        if(type!=0 || code != 0){
+        if(type !=0 || code != 0){
             if (len < SIZE_ETH+ICMP_DATA_SIZE){
                 data_size = len-SIZE_ETH-SIZE_IP;
             }
@@ -242,8 +242,8 @@ void sr_send_icmp(struct sr_instance* sr,
             icmp_header->next_mtu = 0;
             len = SIZE_ETH+SIZE_IP+SIZE_ICMP;
         }
-        icmp_header->icmp_type = htons(type);
-        icmp_header->icmp_code = htons(code);
+        icmp_header->icmp_type = type;
+        icmp_header->icmp_code = code;
         icmp_header->icmp_sum = 0;
         icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,data_size+sizeof(sr_icmp_hdr_t));
         print_hdr_icmp((uint8_t*)icmp_header);
