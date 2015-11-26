@@ -126,12 +126,12 @@ void handleIPPacket(struct sr_instance* sr,
             sr_icmp_hdr_t* icmp_header = (sr_icmp_hdr_t *)(packet+SIZE_ETH+SIZE_IP);
             incm_cksum = icmp_header->icmp_sum;
             icmp_header->icmp_sum = 0;
-            calc_cksum = cksum((uint8_t*)ip_header,20);
+            calc_cksum = cksum((uint8_t*)icmp_header,len-SIZE_ETH-SIZE_IP);
             icmp_header->icmp_sum = incm_cksum;
             uint8_t type = icmp_header->icmp_type;
             uint8_t code = icmp_header->icmp_code;
             if (incm_cksum != calc_cksum){
-                printf("Bad cksum\n");
+                printf("Bad cksum %d != %d\n", incm_cksum, calc_cksum);
             } else if (type == 8 && code == 0) {
                 sr_send_icmp(packet, len, 0, 0);
             }
