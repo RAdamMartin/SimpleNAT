@@ -179,7 +179,7 @@ void sr_print_routing_entry(struct sr_rt* entry)
 
 struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
 {/*ENDIANESS*/
-  unsigned long best_match = 0;
+  uint32_t best_match = 0;
   struct sr_rt* rt = NULL;
   struct sr_rt* rt_walker = 0;
 
@@ -191,50 +191,22 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
 
   rt_walker = sr->routing_table;
   printf("Finding LPM for\n");
+  ip = ip;
   print_addr_ip_int(ip);
-  /*ip = ntohl(ip);*/
-  while(rt_walker)
-  {
+  while(rt_walker){
     uint32_t rt_ip = (uint32_t)(rt_walker->dest.s_addr);
     uint32_t rt_msk = (uint32_t)(rt_walker->mask.s_addr);
     uint32_t rt_entry = (rt_ip&rt_msk);
-    unsigned int i = 0;
-    int max = 0;
-    for (i=1; i <=4; i++){
-        unsigned int j = 0;
-        for (j =0; j < 8; j++){
-            printf("checking %u",(1<<(8*i-j)));
-            if ((rt_msk&(1<<(8*i-j))) == 0){
-                break;
-            }
-            printf("%u=%u\n",rt_ip&(1<<(8*i-j)), ip&(1<<(8*i-j)));
-            if(max == 0 && (rt_ip&(1<<(8*i-j))) != (ip&(1<<(8*i-j)))){
-                max = i;
-            }
-            if (max != 0 && (rt_entry&(1<<(8*i-j))) != 0){
-                max = -1;
-                break;
-            }
+    uint32_t ip_with_mask = (ip&rt_msk);
+    if((ip_with_mask^rt_entry) == 0){
+        if (rt_msk+1 == 0){
+            return rt_walker;
+        } else if (rt_msk > best_match){
+            best_match = rt_msk;
+            rt = rt_walker;
         }
-        if (max == -1){
-            break;
-        }
-        /*
-        printf("%u=%u\n",rt_entry&(1<<i), ip&(1<<i));
-        if (max == 0 && rt_entry&(1<<i) != ip&(1<<i)){
-            max = i;
-        }
-        if (max != 0 && rt_entry&(1<<i) != 0){
-            max = -1;
-            break;
-        }*/
     }
-    if (max == 0){
-        return rt_walker;
-    } else if (max > best_match){
-        best_match = max;
-        rt = rt_walker;
-    }
+    rt_walker = rt_walker->next;
     /*print_addr_ip_int(rt_entry);
     uint32_t match = ip&rt_entry;
     if (match > best_match && match == (rt_ip&rt_msk)){
