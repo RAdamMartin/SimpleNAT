@@ -23,6 +23,24 @@
 #include "sr_arpcache.h"
 #include "sr_utils.h"
 
+void queue_req(struct sr_instance* sr,
+               uint8_t* packet, 
+               unsigned int len, 
+               struct sr_rt* rt){
+    fprintf(stderr,"Adding ARP Request\n");
+    struct sr_if* iface = sr_get_interface(sr, rt->interface);
+    sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;
+    memcpy(eth_header->ether_shost,iface->addr,6);
+    pthread_mutex_lock(&(sr->cache.lock));
+    struct sr_arpreq *req = sr_arpcache_queuereq(&(sr->cache), 
+                                                 (uint32_t)(rt->gw.s_addr), 
+                                                 packet, 
+                                                 len, 
+                                                 rt->interface);
+    sr_handle_arpreq(sr,req);
+    pthread_mutex_unlock(&(sr->cache.lock));
+}
+
 /*---------------------------------------------------------------------
  * Method: sr_init(void)
  * Scope:  Global
@@ -145,28 +163,31 @@ void handleIPPacket(struct sr_instance* sr,
         struct sr_rt* rt;
         struct sr_arpentry *entry;
         rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
-        entry = sr_arpcache_lookup(&sr->cache, ip_header->ip_dst);
-        if (rt && entry) {
-            fprintf(stderr,"Found cache hit\n");
-            iface = sr_get_interface(sr, rt->interface);
-            memcpy(eth_header->ether_dhost,entry->mac,6);
-            memcpy(eth_header->ether_shost,iface->addr,6);
-            ip_header->ip_ttl = ip_header->ip_ttl - 1;
-            ip_header->ip_sum = 0;
-            ip_header->ip_sum = cksum((uint8_t *)ip_header,20);
-            sr_send_packet(sr,packet,len,rt->interface);
-            free(entry);
-        } else if (rt) {
-            fprintf(stderr,"Adding ARP Request\n");
-            iface = sr_get_interface(sr, rt->interface);
-            memcpy(eth_header->ether_shost,iface->addr,6);
-            struct sr_arpreq *req;
-            req = sr_arpcache_queuereq(&(sr->cache), 
-                                        ip_header->ip_dst, 
-                                        packet, 
-                                        len, 
-                                        rt->interface);
-            sr_handle_arpreq(sr,req);
+        if (rt){
+            entry = sr_arpcache_lookup(&sr->cache, (uint32_t)(rt->dest.s_addr));
+            if (entry) {
+                fprintf(stderr,"Found cache hit\n");
+                iface = sr_get_interface(sr, rt->interface);
+                memcpy(eth_header->ether_dhost,entry->mac,6);
+                memcpy(eth_header->ether_shost,iface->addr,6);
+                ip_header->ip_ttl = ip_header->ip_ttl - 1;
+                ip_header->ip_sum = 0;
+                ip_header->ip_sum = cksum((uint8_t *)ip_header,20);
+                sr_send_packet(sr,packet,len,rt->interface);
+                free(entry);
+            } else {
+                /*fprintf(stderr,"Adding ARP Request\n");
+                iface = sr_get_interface(sr, rt->interface);
+                memcpy(eth_header->ether_shost,iface->addr,6);
+                struct sr_arpreq *req;
+                req = sr_arpcache_queuereq(&(sr->cache), 
+                                           ip_header->ip_dst, 
+                                           packet, 
+                                           len, 
+                                           rt->interface);
+                sr_handle_arpreq(sr,req);*/
+                queue_req(sr,packet,len,rt);
+            }
         } else {
             sr_send_icmp(sr, packet, len, 3, 0, 0);
         }
@@ -278,15 +299,15 @@ void sr_send_icmp(struct sr_instance* sr,
             sr_send_packet(sr,packet,len,rt->interface);
             free(entry);
         } else {
-            fprintf(stderr,"Adding ARP Request\n");
+            /*fprintf(stderr,"Adding ARP Request\n");
             struct sr_arpreq *req;
             req = sr_arpcache_queuereq(&(sr->cache), 
                                         ip_header->ip_dst, 
                                         packet, 
                                         len, 
                                         rt->interface);
-            sr_handle_arpreq(sr,req);
+            sr_handle_arpreq(sr,req);*/
+            queue_req(sr,packet,len,rt);
         }
     }
-    
 }
