@@ -240,8 +240,8 @@ void sr_send_icmp(struct sr_instance* sr,
         fprintf(stderr,"Found route %s\n",rt->interface);
         struct sr_if* iface = sr_get_interface(sr, rt->interface);
 
-        int data_size = len-SIZE_ETH-SIZE_IP-sizeof(sr_icmp_hdr_t);
         if(type !=0 || code != 0){
+            int data_size;
             if (len < SIZE_ETH+ICMP_DATA_SIZE){
                 data_size = len-SIZE_ETH;
             } else {
@@ -256,7 +256,7 @@ void sr_send_icmp(struct sr_instance* sr,
         icmp_header->icmp_type = type;
         icmp_header->icmp_code = code;
         icmp_header->icmp_sum = 0;
-        icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,data_size+sizeof(sr_icmp_hdr_t));
+        icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,len-SIZE_ETH-SIZE_IP);
         memcpy(eth_header->ether_shost,iface->addr,6);
         eth_header->ether_type = htons(0x0800);
         if (ip_src == 0){
