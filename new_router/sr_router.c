@@ -63,6 +63,7 @@ void handleARPpacket(struct sr_instance *sr,
         printf("ARP Not for us\n");
     }
     else if(ntohs(arp_header->ar_op) == arp_op_request){
+        sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
         printf("Replying to ARP request\n");
         arp_header->ar_op = ntohs(arp_op_reply);
         uint32_t temp = arp_header->ar_sip;
@@ -72,10 +73,7 @@ void handleARPpacket(struct sr_instance *sr,
         memcpy(arp_header->ar_sha, iface->addr,6);
         memcpy(eth_header->ether_dhost, eth_header->ether_shost,6);
         memcpy(eth_header->ether_shost, iface->addr,6);
-        sr_send_packet(sr
-                       ,packet
-                       ,SIZE_ETH+SIZE_ARP
-                       ,iface->name);
+        sr_send_packet(sr, packet, SIZE_ETH+SIZE_ARP, iface->name);
     }
     else if (ntohs(arp_header->ar_op) == arp_op_reply){/*} && strcmp(iface->addr,eth_header->ether_dhost) == 0){*/
         printf("Processing ARP reply\n");
@@ -204,6 +202,7 @@ void sr_handlepacket(struct sr_instance* sr,
     /* fill in code here */
     printf("*** -> Received packet of length %d \n",len);
     print_hdrs(packet,len);
+    sr_arpcache_dump(&(sr->cache));
     struct sr_if * iface = sr_get_interface(sr, interface);
     if(len>=34){
         uint8_t* ether_packet = malloc((size_t)(len+28));
