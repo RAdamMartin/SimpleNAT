@@ -112,7 +112,7 @@ void handleARPpacket(struct sr_instance *sr,
 void handleIPPacket(struct sr_instance* sr, 
         uint8_t* packet,
         unsigned int len, 
-        struct sr_if * iface)
+        struct sr_if * rec_iface)
 {
     sr_ip_hdr_t * ip_header = (sr_ip_hdr_t *)(packet+SIZE_ETH);
     struct sr_if *tgt_iface= sr_get_interface_from_ip(sr,ip_header->ip_dst);
@@ -121,7 +121,7 @@ void handleIPPacket(struct sr_instance* sr,
     ip_header->ip_sum = 0;
     uint16_t calc_cksum = cksum((uint8_t*)ip_header,20);
     ip_header->ip_sum = incm_cksum;
-    if (calc_cksum != incm_cksum){/* || strcmp(iface->addr,eth_header->ether_dhost) != 0){*/
+    if (calc_cksum != incm_cksum){
         fprintf(stderr,"Bad cksum/interface mismatch\n");
     } else if (tgt_iface != NULL){
         fprintf(stderr,"For us\n");
@@ -239,10 +239,12 @@ void sr_send_icmp(struct sr_instance* sr,
         fprintf(stderr,"Found route %s\n",rt->interface);
         struct sr_if* iface = sr_get_interface(sr, rt->interface);
         
-        size_t data_size = ICMP_DATA_SIZE;
+        size_t data_size = len-SIZE_ETH-SIZE_IP-sizeof(sr_icmp_hdr_t);
         if(type !=0 || code != 0){
             if (len < SIZE_ETH+ICMP_DATA_SIZE){
-                data_size = len-SIZE_ETH-SIZE_IP;
+                data_size = len-SIZE_ETH;
+            } else {
+                data_size = ICMP_DATA_SIZE;
             }
             memcpy(icmp_header->data,buf+SIZE_ETH,data_size);
             icmp_header->unused = 0;
