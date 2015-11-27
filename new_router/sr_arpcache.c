@@ -10,6 +10,7 @@
 #include "sr_router.h"
 #include "sr_if.h"
 #include "sr_protocol.h"
+#include "sr_utils.h"
 
 /* 
   This function gets called every second. For each request sent out, we keep
@@ -279,8 +280,11 @@ void sr_handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req){
         /* get outgoing interface and send the request */
         struct sr_if* if_walker = 0;
         if_walker = sr->if_list;
+        printf("Searching for ");
+        print_addr_ip_int(if_walker->ip);
         while(if_walker)
         {
+            print_addr_ip_int(if_walker->ip);
             if (if_walker->ip == req->ip){
                 arpHeader->ar_sip = if_walker->ip;
                 memcpy(arpHeader->ar_sha, if_walker->addr, 6);/*ENDIANESS*/
