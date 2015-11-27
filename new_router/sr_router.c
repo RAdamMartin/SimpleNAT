@@ -62,25 +62,24 @@ void handleARPpacket(struct sr_instance *sr,
     if (interface == NULL){
         fprintf(stderr,"ARP Not for us\n");
     }
-    else {
-        if(ntohs(arp_header->ar_op) == arp_op_request){
-            fprintf(stderr,"Replying to ARP request\n");
-            arp_header->ar_op = ntohs(arp_op_reply);
-            uint32_t temp = arp_header->ar_sip;
-            arp_header->ar_sip = arp_header->ar_tip;
-            arp_header->ar_tip = temp;
-            memcpy(arp_header->ar_tha, arp_header->ar_sha,6);
-            memcpy(arp_header->ar_sha, iface->addr,6);
-            memcpy(eth_header->ether_dhost, eth_header->ether_shost,6);
-            memcpy(eth_header->ether_shost, iface->addr,6);
-            sr_send_packet(sr, packet, SIZE_ETH+SIZE_ARP, iface->name);
-        }
-    /*else if (ntohs(arp_header->ar_op) == arp_op_reply){} && strcmp(iface->addr,eth_header->ether_dhost) == 0){*/
-        else{fprintf(stderr,"Processing ARP reply\n");}
+    else if(ntohs(arp_header->ar_op) == arp_op_request){
+        fprintf(stderr,"Replying to ARP request\n");
+        sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
+        arp_header->ar_op = ntohs(arp_op_reply);
+        uint32_t temp = arp_header->ar_sip;
+        arp_header->ar_sip = arp_header->ar_tip;
+        arp_header->ar_tip = temp;
+        memcpy(arp_header->ar_tha, arp_header->ar_sha,6);
+        memcpy(arp_header->ar_sha, iface->addr,6);
+        memcpy(eth_header->ether_dhost, eth_header->ether_shost,6);
+        memcpy(eth_header->ether_shost, iface->addr,6);
+        sr_send_packet(sr, packet, SIZE_ETH+SIZE_ARP, iface->name);
+    } else if (ntohs(arp_header->ar_op) == arp_op_reply){/*} && strcmp(iface->addr,eth_header->ether_dhost) == 0){*/
+        fprintf(stderr,"Processing ARP reply\n");
         struct sr_arpreq *req;
         struct sr_packet *pckt;
-        req = sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
         pthread_mutex_lock(&(sr->cache.lock));
+        req = sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
         if(req){
             fprintf(stderr,"Clearing queue\n");
             /*struct sr_rt * rt = (struct sr_rt *)sr_find_routing_entry_int(sr, req->ip);*/
