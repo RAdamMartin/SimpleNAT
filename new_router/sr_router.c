@@ -82,6 +82,7 @@ void handleARPpacket(struct sr_instance *sr,
         struct sr_arpreq *req;
         struct sr_packet *pckt;
         req = sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
+        pthread_mutex_lock(&(sr->cache.lock));
         if(req){
             printf("Clearing queue\n");
             /*struct sr_rt * rt = (struct sr_rt *)sr_find_routing_entry_int(sr, req->ip);*/
@@ -96,6 +97,8 @@ void handleARPpacket(struct sr_instance *sr,
                 sr_send_packet(sr,pckt->buf,pckt->len,iface->name);
             }
         }
+        sr_arpreq_destroy(&(sr->cache), req);
+        pthread_mutex_unlock(&(sr->cache.lock));
     }
 }
 
