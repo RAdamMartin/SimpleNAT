@@ -280,12 +280,11 @@ void sr_handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req){
         /* get outgoing interface and send the request */
         struct sr_if* if_walker = 0;
         if_walker = sr->if_list;
-        printf("Searching for ");
-        print_addr_ip_int(if_walker->ip);
+        printf("Searching for %s in:\n", if_walker->name);
         while(if_walker)
         {
-            print_addr_ip_int(if_walker->ip);
-            if (if_walker->ip == req->ip){
+            printf("\t%s",req->packets->iface);
+            if (strcmp(if_walker->name,req->packets->iface)){
                 arpHeader->ar_sip = if_walker->ip;
                 memcpy(arpHeader->ar_sha, if_walker->addr, 6);/*ENDIANESS*/
                 memcpy(ethHeader->ether_shost, if_walker->addr, 6);
@@ -297,7 +296,7 @@ void sr_handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req){
             }
             if_walker = if_walker->next;
         }
-    
+        printf("\n");
         req->sent = curtime;
         req->times_sent++;
         free(out);
