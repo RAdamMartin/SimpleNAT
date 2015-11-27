@@ -75,7 +75,7 @@ int sr_load_rt(struct sr_instance* sr,const char* filename)
             return -1; 
         }
         if( clear_routing_table == 0 ){
-            printf("Loading routing table from server, clear local routing table.\n");
+            fprintf(stderr,"Loading routing table from server, clear local routing table.\n");
             sr->routing_table = 0;
             clear_routing_table = 1;
         }
@@ -142,11 +142,11 @@ void sr_print_routing_table(struct sr_instance* sr)
 
     if(sr->routing_table == 0)
     {
-        printf(" *warning* Routing table empty \n");
+        fprintf(stderr," *warning* Routing table empty \n");
         return;
     }
 
-    printf("Destination\tGateway\t\tMask\tIface\n");
+    fprintf(stderr,"Destination\tGateway\t\tMask\tIface\n");
 
     rt_walker = sr->routing_table;
     
@@ -170,10 +170,10 @@ void sr_print_routing_entry(struct sr_rt* entry)
     assert(entry);
     assert(entry->interface);
 
-    printf("%s\t\t",inet_ntoa(entry->dest));
-    printf("%s\t",inet_ntoa(entry->gw));
-    printf("%s\t",inet_ntoa(entry->mask));
-    printf("%s\n",entry->interface);
+    fprintf(stderr,"%s\t\t",inet_ntoa(entry->dest));
+    fprintf(stderr,"%s\t",inet_ntoa(entry->gw));
+    fprintf(stderr,"%s\t",inet_ntoa(entry->mask));
+    fprintf(stderr,"%s\n",entry->interface);
 
 } /* -- sr_print_routing_entry -- */
 
@@ -185,12 +185,12 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
 
   if(sr->routing_table == 0)
   {
-    printf(" *warning* Routing table empty \n");
+    fprintf(stderr," *warning* Routing table empty \n");
     return NULL;
   }
 
   rt_walker = sr->routing_table;
-  printf("Finding LPM for\n");
+  fprintf(stderr,"Finding LPM for\n");
   ip = ip;
   print_addr_ip_int(ip);
   while(rt_walker){
@@ -210,7 +210,7 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
     /*print_addr_ip_int(rt_entry);
     uint32_t match = ip&rt_entry;
     if (match > best_match && match == (rt_ip&rt_msk)){
-        printf("Found match for %d with %d\n",ip, rt_ip);
+        fprintf(stderr,"Found match for %d with %d\n",ip, rt_ip);
         best_match = match;
         rt = rt_walker;
     }

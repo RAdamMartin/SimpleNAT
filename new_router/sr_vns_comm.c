@@ -227,7 +227,7 @@ int sr_handle_hwinfo(struct sr_instance* sr, c_hwinfo* hwinfo)
         } /* -- switch -- */
     } /* -- for -- */
 
-    printf("Router interfaces:\n");
+    fprintf(stderr,"Router interfaces:\n");
     sr_print_if_list(sr);
 
     return num_entries;
@@ -313,7 +313,7 @@ int sr_handle_auth_request(struct sr_instance* sr, c_auth_request* req) {
 
 int sr_handle_auth_status(struct sr_instance* sr, c_auth_status* status) {
     if(status->auth_ok)
-        printf("successfully authenticated as %s\n", sr->user);
+        fprintf(stderr,"successfully authenticated as %s\n", sr->user);
     else
         fprintf(stderr, "Authentication failed as %s: %s\n", sr->user, status->msg);
     return status->auth_ok;
@@ -475,7 +475,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
                 fprintf(stderr,"Routing table not consistent with hardware\n");
                 return -1;
             }
-            printf(" <-- Ready to process packets --> \n");
+            fprintf(stderr," <-- Ready to process packets --> \n");
             break;
 
             /* ---------------- VNS_RTABLE ---------------- */
@@ -567,7 +567,7 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
 {
     c_packet_header *sr_pkt;
     unsigned int total_len =  len + (sizeof(c_packet_header));
-printf("Sending packket:\n");
+fprintf(stderr,"SENDING PACKET:\n");
 print_hdrs(buf,len);
     /* REQUIRES */
     assert(sr);
