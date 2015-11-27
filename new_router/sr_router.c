@@ -31,7 +31,7 @@ void sendIPPacket(struct sr_instance* sr,
     struct sr_if* iface = sr_get_interface(sr, rt->interface);
     struct sr_arpentry* entry;
     pthread_mutex_lock(&(sr->cache.lock));
-    entry = sr_arpcache_lookup(&sr->cache, (uint32_t)(rt->dest.s_addr));
+    entry = sr_arpcache_lookup(&sr->cache, (uint32_t)(rt->gw.s_addr));
     sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;
     sr_ip_hdr_t* ip_header = (sr_ip_hdr_t*) (packet+SIZE_ETH);
     
@@ -122,7 +122,7 @@ void handleIPPacket(struct sr_instance* sr,
     uint16_t calc_cksum = cksum((uint8_t*)ip_header,20);
     ip_header->ip_sum = incm_cksum;
     if (calc_cksum != incm_cksum){
-        fprintf(stderr,"Bad cksum/interface mismatch\n");
+        fprintf(stderr,"Bad checksum\n");
     } else if (tgt_iface != NULL){
         fprintf(stderr,"For us\n");
         if(ip_header->ip_p==6){ /*TCP*/
