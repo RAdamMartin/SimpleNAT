@@ -67,7 +67,7 @@ void handleARPpacket(struct sr_instance *sr,
     sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;
     sr_arp_hdr_t * arp_header = (sr_arp_hdr_t *) (packet+SIZE_ETH);
     struct sr_if *tgt_iface = sr_get_interface_from_ip(sr, arp_header->ar_tip);
-    if (tgt_iface == NULL || strcmp(rec_iface->name, tgt_iface->name) != 0){
+    if (tgt_iface == NULL || strcmp(rec_iface->addr, eth_header->ether_dhost) != 0){
         fprintf(stderr,"ARP Not for us\n");
     }
     else if(ntohs(arp_header->ar_op) == arp_op_request){
