@@ -71,7 +71,7 @@ void handleARPpacket(struct sr_instance *sr,
         memcpy(arp_header->ar_tha, arp_header->ar_sha,6);
         memcpy(arp_header->ar_sha, iface->addr,6);
         memcpy(eth_header->ether_dhost, eth_header->ether_shost,6);
-        memcpy(eth_header->ether_shost, iface->addr,6);/*ENDIANESS*/
+        memcpy(eth_header->ether_shost, iface->addr,6);
         sr_send_packet(sr
                        ,packet
                        ,SIZE_ETH+SIZE_ARP
