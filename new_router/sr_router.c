@@ -131,7 +131,7 @@ void handleIPPacket(struct sr_instance* sr,
         } else if (ip_header->ip_p==17){ /*UDP*/
             fprintf(stderr,"UDP\n");
             sr_send_icmp(sr, packet, len, 3, 3, 0);
-        } else if (ip_header->ip_p==1 && ip_header->ip_tos==0){ /*ICMP*/
+        } else if (ip_header->ip_p==1 && ip_header->ip_tos==0){ /*ICMP PING*/
             fprintf(stderr,"ICMP\n");
             sr_icmp_hdr_t* icmp_header = (sr_icmp_hdr_t *)(packet+SIZE_ETH+SIZE_IP);
             incm_cksum = icmp_header->icmp_sum;
@@ -239,14 +239,15 @@ void sr_send_icmp(struct sr_instance* sr,
     if(rt){
         fprintf(stderr,"Found route %s\n",rt->interface);
         struct sr_if* iface = sr_get_interface(sr, rt->interface);
-        
-        size_t data_size = len-SIZE_ETH-SIZE_IP-sizeof(sr_icmp_hdr_t);
+
+        int data_size = len-SIZE_ETH-SIZE_IP-sizeof(sr_icmp_hdr_t);
         if(type !=0 || code != 0){
             if (len < SIZE_ETH+ICMP_DATA_SIZE){
                 data_size = len-SIZE_ETH;
             } else {
                 data_size = ICMP_DATA_SIZE;
             }
+            fprintf(stderr,"ICMP data size = %d", data_size);
             memcpy(icmp_header->data,buf+SIZE_ETH,data_size);
             icmp_header->unused = 0;
             icmp_header->next_mtu = 0;
