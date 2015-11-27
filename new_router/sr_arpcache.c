@@ -110,7 +110,8 @@ struct sr_arpreq *sr_arpcache_insert(struct sr_arpcache *cache,
                                      uint32_t ip)
 {
     pthread_mutex_lock(&(cache->lock));
-    
+    fprintf(stderr,"ARP Cache Inserting: ");
+    print_addr_ip_int(ip);
     struct sr_arpreq *req, *prev = NULL, *next = NULL; 
     for (req = cache->requests; req != NULL; req = req->next) {
         if (req->ip == ip) {            
@@ -140,7 +141,7 @@ struct sr_arpreq *sr_arpcache_insert(struct sr_arpcache *cache,
         cache->entries[i].added = time(NULL);
         cache->entries[i].valid = 1;
     }
-    
+    sr_arpcache_dump(cache);
     pthread_mutex_unlock(&(cache->lock));
     
     return req;

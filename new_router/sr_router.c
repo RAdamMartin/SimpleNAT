@@ -202,7 +202,6 @@ void sr_handlepacket(struct sr_instance* sr,
     /* fill in code here */
     fprintf(stderr,"*** -> Received packet of length %d \n",len);
     print_hdrs(packet,len);
-    sr_arpcache_dump(&(sr->cache));
     struct sr_if * iface = sr_get_interface(sr, interface);
     if(len>=34){
         uint8_t* ether_packet = malloc((size_t)(len+28));
