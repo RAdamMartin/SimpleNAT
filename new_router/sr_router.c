@@ -62,20 +62,20 @@ void handleARPpacket(struct sr_instance *sr,
     if (interface == NULL){
         printf("ARP Not for us\n");
     }
-    else if(ntohs(arp_header->ar_op) == arp_op_request){
-        sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
-        printf("Replying to ARP request\n");
-        arp_header->ar_op = ntohs(arp_op_reply);
-        uint32_t temp = arp_header->ar_sip;
-        arp_header->ar_sip = arp_header->ar_tip;
-        arp_header->ar_tip = temp;
-        memcpy(arp_header->ar_tha, arp_header->ar_sha,6);
-        memcpy(arp_header->ar_sha, iface->addr,6);
-        memcpy(eth_header->ether_dhost, eth_header->ether_shost,6);
-        memcpy(eth_header->ether_shost, iface->addr,6);
-        sr_send_packet(sr, packet, SIZE_ETH+SIZE_ARP, iface->name);
-    }
-    else if (ntohs(arp_header->ar_op) == arp_op_reply){/*} && strcmp(iface->addr,eth_header->ether_dhost) == 0){*/
+    else {
+        if(ntohs(arp_header->ar_op) == arp_op_request){
+            printf("Replying to ARP request\n");
+            arp_header->ar_op = ntohs(arp_op_reply);
+            uint32_t temp = arp_header->ar_sip;
+            arp_header->ar_sip = arp_header->ar_tip;
+            arp_header->ar_tip = temp;
+            memcpy(arp_header->ar_tha, arp_header->ar_sha,6);
+            memcpy(arp_header->ar_sha, iface->addr,6);
+            memcpy(eth_header->ether_dhost, eth_header->ether_shost,6);
+            memcpy(eth_header->ether_shost, iface->addr,6);
+            sr_send_packet(sr, packet, SIZE_ETH+SIZE_ARP, iface->name);
+        }
+    /*else if (ntohs(arp_header->ar_op) == arp_op_reply){} && strcmp(iface->addr,eth_header->ether_dhost) == 0){*/
         printf("Processing ARP reply\n");
         struct sr_arpreq *req;
         struct sr_packet *pckt;

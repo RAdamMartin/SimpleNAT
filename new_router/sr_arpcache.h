@@ -71,7 +71,7 @@
 #include <pthread.h>
 #include "sr_if.h"
 
-#define SR_ARPCACHE_SZ    100  
+#define SR_ARPCACHE_SZ    20 /*100*/  
 #define SR_ARPCACHE_TO    15.0
 
 struct sr_packet {
