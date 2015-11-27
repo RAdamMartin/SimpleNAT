@@ -229,8 +229,8 @@ void sr_send_icmp(struct sr_instance* sr,
 	fprintf(stderr,"Send ICMP type %d code %d to\n",type, code);
 
     uint8_t* packet = malloc(len+SIZE_ICMP);
-    memset(packet, 0, len+SIZE_ICMP);
-    memcpy(packet, buf, len);
+    memset(packet,0,len+SIZE_ICMP);
+    memcpy(packet,buf,len);
     sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;
     sr_ip_hdr_t* ip_header = (sr_ip_hdr_t*)(packet+SIZE_ETH);
     sr_icmp_t3_hdr_t* icmp_header = (sr_icmp_t3_hdr_t*)(packet+SIZE_ETH+SIZE_IP);
@@ -240,14 +240,13 @@ void sr_send_icmp(struct sr_instance* sr,
         fprintf(stderr,"Found route %s\n",rt->interface);
         struct sr_if* iface = sr_get_interface(sr, rt->interface);
         
-        unsigned int data_size = len-SIZE_ETH-SIZE_IP-sizeof(sr_icmp_hdr_t);
+        size_t data_size = len-SIZE_ETH-SIZE_IP-sizeof(sr_icmp_hdr_t);
         if(type !=0 || code != 0){
-            /*if (len < SIZE_ETH+ICMP_DATA_SIZE){
+            if (len < SIZE_ETH+ICMP_DATA_SIZE){
                 data_size = len-SIZE_ETH;
             } else {
                 data_size = ICMP_DATA_SIZE;
-            }*/
-            data_size = ICMP_DATA_SIZE;
+            }
             memcpy(icmp_header->data,buf+SIZE_ETH,data_size);
             icmp_header->unused = 0;
             icmp_header->next_mtu = 0;
@@ -256,8 +255,7 @@ void sr_send_icmp(struct sr_instance* sr,
         icmp_header->icmp_type = type;
         icmp_header->icmp_code = code;
         icmp_header->icmp_sum = 0;
-        printf("%u+4=%u\n",data_size, (unsigned int)SIZE_ICMP);
-        icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,SIZE_ICMP);
+        icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,data_size+sizeof(sr_icmp_hdr_t));
         memcpy(eth_header->ether_shost,iface->addr,6);
         eth_header->ether_type = htons(0x0800);
         if (ip_src == 0){
