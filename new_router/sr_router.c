@@ -23,7 +23,8 @@
 #include "sr_arpcache.h"
 #include "sr_utils.h"
 
-void send_packet(struct sr_instance* sr,
+/*INTERNAL TO sr_router*/
+void sendIPPacket(struct sr_instance* sr,
                uint8_t* packet, 
                unsigned int len, 
                struct sr_rt* rt){
@@ -41,92 +42,49 @@ void send_packet(struct sr_instance* sr,
         memcpy(eth_header->ether_shost,iface->addr,6);
         ip_header->ip_ttl = ip_header->ip_ttl - 1;
         ip_header->ip_sum = 0;
-        ip_header->ip_sum = cksum((uint8_t *)ip_header,20);
+        ip_header->ip_sum = cksum((uint8_t *)ip_header,SIZE_IP);
         sr_send_packet(sr,packet,len,rt->interface);
         free(entry);
     } else {
         fprintf(stderr,"Adding ARP Request\n");
         memcpy(eth_header->ether_shost,iface->addr,6);
         struct sr_arpreq *req = sr_arpcache_queuereq(&(sr->cache), 
-                                                    (uint32_t)(rt->gw.s_addr), 
-                                                    packet, 
-                                                    len, 
-                                                    rt->interface);
+                                                     (uint32_t)(rt->gw.s_addr), 
+                                                     packet, 
+                                                     len, 
+                                                     rt->interface);
         sr_handle_arpreq(sr,req);
     }
     pthread_mutex_unlock(&(sr->cache.lock));
-}
+} /*end sendIPPacket */
 
-/*void queue_req(struct sr_instance* sr,
-               uint8_t* packet, 
-               unsigned int len, 
-               struct sr_rt* rt){
-    fprintf(stderr,"Adding ARP Request\n");
-    struct sr_if* iface = sr_get_interface(sr, rt->interface);
-    sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;
-    memcpy(eth_header->ether_shost,iface->addr,6);
-    pthread_mutex_lock(&(sr->cache.lock));
-    struct sr_arpreq *req = sr_arpcache_queuereq(&(sr->cache), 
-                                                 (uint32_t)(rt->gw.s_addr), 
-                                                 packet, 
-                                                 len, 
-                                                 rt->interface);
-    sr_handle_arpreq(sr,req);
-    pthread_mutex_unlock(&(sr->cache.lock));
-}*/
-
-/*---------------------------------------------------------------------
- * Method: sr_init(void)
- * Scope:  Global
- *
- * Initialize the routing subsystem
- *
- *---------------------------------------------------------------------*/
-
-void sr_init(struct sr_instance* sr)
-{
-    /* REQUIRES */
-    assert(sr);
-
-    /* Initialize cache and cache cleanup thread */
-    sr_arpcache_init(&(sr->cache));
-
-    pthread_attr_init(&(sr->attr));
-    pthread_attr_setdetachstate(&(sr->attr), PTHREAD_CREATE_JOINABLE);
-    pthread_attr_setscope(&(sr->attr), PTHREAD_SCOPE_SYSTEM);
-    pthread_attr_setscope(&(sr->attr), PTHREAD_SCOPE_SYSTEM);
-    pthread_t thread;
-
-    pthread_create(&thread, &(sr->attr), sr_arpcache_timeout, sr);
-    
-    /* Add initialization code here! */
-
-} /* -- sr_init -- */
-
+/*INTERNAL TO sr_router*/
 void handleARPpacket(struct sr_instance *sr,
         uint8_t* packet, 
         unsigned int len, 
-        struct sr_if * iface)
+        struct sr_if * rec_iface)
 {
     sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;
     sr_arp_hdr_t * arp_header = (sr_arp_hdr_t *) (packet+SIZE_ETH);
-    struct sr_if *interface = sr_get_interface_from_ip(sr, arp_header->ar_tip);
-    if (interface == NULL){
+    struct sr_if *tgt_iface = sr_get_interface_from_ip(sr, arp_header->ar_tip);
+    if (tgt_iface == NULL || strcmp(rec_iface->name, tgt_iface->name) != 0){
         fprintf(stderr,"ARP Not for us\n");
     }
     else if(ntohs(arp_header->ar_op) == arp_op_request){
         fprintf(stderr,"Replying to ARP request\n");
         sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
+        /*Setup ETH Header for Reply*/
+        memcpy(eth_header->ether_dhost, arp_header->ar_sha,6);
+        memcpy(eth_header->ether_shost, rec_iface->addr,6);
+        /*Setup ARP Header for Reply*/
         arp_header->ar_op = ntohs(arp_op_reply);
         uint32_t temp = arp_header->ar_sip;
         arp_header->ar_sip = arp_header->ar_tip;
         arp_header->ar_tip = temp;
         memcpy(arp_header->ar_tha, arp_header->ar_sha,6);
-        memcpy(arp_header->ar_sha, iface->addr,6);
-        memcpy(eth_header->ether_dhost, eth_header->ether_shost,6);
-        memcpy(eth_header->ether_shost, iface->addr,6);
-        sr_send_packet(sr, packet, SIZE_ETH+SIZE_ARP, iface->name);
-    } else if (ntohs(arp_header->ar_op) == arp_op_reply){/*} && strcmp(iface->addr,eth_header->ether_dhost) == 0){*/
+        memcpy(arp_header->ar_sha, rec_iface->addr,6);
+        sr_send_packet(sr, packet, SIZE_ETH+SIZE_ARP, rec_iface->name);
+    } else if (ntohs(arp_header->ar_op) == arp_op_reply){/*} && strcmp(rec_iface->addr,eth_header->ether_dhost) == 0){*/
         fprintf(stderr,"Processing ARP reply\n");
         struct sr_arpreq *req;
         struct sr_packet *pckt;
@@ -134,31 +92,30 @@ void handleARPpacket(struct sr_instance *sr,
         req = sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
         if(req){
             fprintf(stderr,"Clearing queue\n");
-            /*struct sr_rt * rt = (struct sr_rt *)sr_find_routing_entry_int(sr, req->ip);*/
             for (pckt = req->packets; pckt != NULL; pckt = pckt->next){
-                sr_ethernet_hdr_t * outEther = (sr_ethernet_hdr_t *)pckt->buf;
-                memcpy(outEther->ether_shost, iface->addr,6);
-                memcpy(outEther->ether_dhost, arp_header->ar_sha,6);
+                sr_ethernet_hdr_t * outETH = (sr_ethernet_hdr_t *)(pckt->buf);
+                memcpy(outETH->ether_shost, rec_iface->addr,6);
+                memcpy(outETH->ether_dhost, arp_header->ar_sha,6);
                 sr_ip_hdr_t * outIP = (sr_ip_hdr_t *)(pckt->buf+14);
                 outIP->ip_ttl = outIP->ip_ttl-1;
                 outIP->ip_sum = 0;
                 outIP->ip_sum = cksum((uint8_t *)outIP,20);
-                sr_send_packet(sr,pckt->buf,pckt->len,iface->name);
+                sr_send_packet(sr,pckt->buf,pckt->len,rec_iface->name);
             }
             sr_arpreq_destroy(&(sr->cache), req);
         }
         pthread_mutex_unlock(&(sr->cache.lock));
     }
-}
+}/* end handleARPPacket */
 
+/*INTERNAL TO sr_router*/
 void handleIPPacket(struct sr_instance* sr, 
         uint8_t* packet,
         unsigned int len, 
         struct sr_if * iface)
 {
-    /*sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;*/
     sr_ip_hdr_t * ip_header = (sr_ip_hdr_t *)(packet+SIZE_ETH);
-    struct sr_if *interface= sr_get_interface_from_ip(sr,ip_header->ip_dst);
+    struct sr_if *tgt_iface= sr_get_interface_from_ip(sr,ip_header->ip_dst);
 
     uint16_t incm_cksum = ip_header->ip_sum;
     ip_header->ip_sum = 0;
@@ -166,7 +123,7 @@ void handleIPPacket(struct sr_instance* sr,
     ip_header->ip_sum = incm_cksum;
     if (calc_cksum != incm_cksum){/* || strcmp(iface->addr,eth_header->ether_dhost) != 0){*/
         fprintf(stderr,"Bad cksum/interface mismatch\n");
-    } else if (interface != NULL){
+    } else if (tgt_iface != NULL){
         fprintf(stderr,"For us\n");
         if(ip_header->ip_p==6){ /*TCP*/
             fprintf(stderr,"TCP\n");
@@ -195,29 +152,32 @@ void handleIPPacket(struct sr_instance* sr,
     } else {
         fprintf(stderr,"Not for us\n");
         struct sr_rt* rt;
-        /*struct sr_arpentry *entry;*/
         rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
         if (rt){
-            /*entry = sr_arpcache_lookup(&sr->cache, (uint32_t)(rt->dest.s_addr));
-            if (entry) {
-                fprintf(stderr,"Found cache hit\n");
-                iface = sr_get_interface(sr, rt->interface);
-                memcpy(eth_header->ether_dhost,entry->mac,6);
-                memcpy(eth_header->ether_shost,iface->addr,6);
-                ip_header->ip_ttl = ip_header->ip_ttl - 1;
-                ip_header->ip_sum = 0;
-                ip_header->ip_sum = cksum((uint8_t *)ip_header,20);
-                sr_send_packet(sr,packet,len,rt->interface);
-                free(entry);
-            } else {
-                queue_req(sr,packet,len,rt);
-            }*/
-            send_packet(sr,packet,len,rt);
+            sendIPPacket(sr,packet,len,rt);
         } else {
             sr_send_icmp(sr, packet, len, 3, 0, 0);
         }
     }
-}
+}/* end handleIPPacket */
+
+void sr_init(struct sr_instance* sr)
+{
+    /* REQUIRES */
+    assert(sr);
+
+    /* Initialize cache and cache cleanup thread */
+    sr_arpcache_init(&(sr->cache));
+
+    pthread_attr_init(&(sr->attr));
+    pthread_attr_setdetachstate(&(sr->attr), PTHREAD_CREATE_JOINABLE);
+    pthread_attr_setscope(&(sr->attr), PTHREAD_SCOPE_SYSTEM);
+    pthread_attr_setscope(&(sr->attr), PTHREAD_SCOPE_SYSTEM);
+    pthread_t thread;
+
+    pthread_create(&thread, &(sr->attr), sr_arpcache_timeout, sr);    
+    /* Add initialization code here! */
+} /* -- sr_init -- */
 
 /*---------------------------------------------------------------------
  * Method: sr_handlepacket(uint8_t* p,char* interface)
@@ -234,17 +194,14 @@ void handleIPPacket(struct sr_instance* sr,
  * the method call.
  *
  *---------------------------------------------------------------------*/
-
 void sr_handlepacket(struct sr_instance* sr,
         uint8_t * packet/* lent */,
         unsigned int len,
         char* interface/* lent */)
 {
-    /* REQUIRES */
     assert(sr);
     assert(packet);
     assert(interface);
-    /* fill in code here */
     fprintf(stderr,"*** -> Received packet of length %d \n",len);
     print_hdrs(packet,len);
     struct sr_if * iface = sr_get_interface(sr, interface);
@@ -261,7 +218,7 @@ void sr_handlepacket(struct sr_instance* sr,
         }
         free(ether_packet);
     }
-}/* end sr_ForwardPacket */
+}/* end sr_handlepacket */
 
 void sr_send_icmp(struct sr_instance* sr,
         uint8_t *buf,
@@ -276,14 +233,11 @@ void sr_send_icmp(struct sr_instance* sr,
     sr_ethernet_hdr_t* eth_header = (sr_ethernet_hdr_t*) packet;
     sr_ip_hdr_t* ip_header = (sr_ip_hdr_t*)(packet+SIZE_ETH);
     sr_icmp_t3_hdr_t* icmp_header = (sr_icmp_t3_hdr_t*)(packet+SIZE_ETH+SIZE_IP);
-    struct sr_rt* rt;
-    /*struct sr_arpentry *entry;*/
-    struct sr_if* iface;
-    rt = (struct sr_rt *)sr_find_routing_entry_int(sr, ip_header->ip_src);
+    struct sr_rt* rt = sr_find_routing_entry_int(sr, ip_header->ip_src);
     
     if(rt){
         fprintf(stderr,"Found route %s\n",rt->interface);
-        iface = sr_get_interface(sr, rt->interface);
+        struct sr_if* iface = sr_get_interface(sr, rt->interface);
         
         size_t data_size = ICMP_DATA_SIZE;
         if(type !=0 || code != 0){
@@ -317,15 +271,6 @@ void sr_send_icmp(struct sr_instance* sr,
         ip_header->ip_src = ip_src;
         ip_header->ip_sum = cksum((uint8_t*)(ip_header),SIZE_IP);
       
-        /*entry = sr_arpcache_lookup(&sr->cache, ip_header->ip_dst);
-        if (entry){
-            fprintf(stderr,"Found cache hit\n");
-            memcpy(eth_header->ether_dhost,entry->mac,6);
-            sr_send_packet(sr,packet,len,rt->interface);
-            free(entry);
-        } else {
-            queue_req(sr,packet,len,rt);
-        }*/
-        send_packet(sr,packet,len,rt);
+        sendIPPacket(sr,packet,len,rt);
     }
-}
+}/* end sr_send_icmp */
