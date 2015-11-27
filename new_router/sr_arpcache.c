@@ -278,25 +278,31 @@ void sr_handle_arpreq(struct sr_instance *sr, struct sr_arpreq *req){
         memset(ethHeader->ether_dhost, 255,6);
     
         /* get outgoing interface and send the request */
-        struct sr_if* if_walker = 0;
-        if_walker = sr->if_list;
-        printf("Searching for %s in:\n", if_walker->name);
+        struct sr_if* if_walker;
+        if_walker = sr_get_interface(sr, req->packets->iface);
+        if (if_walker){
+            arpHeader->ar_sip = if_walker->ip;
+            memcpy(arpHeader->ar_sha, if_walker->addr, 6);
+            memcpy(ethHeader->ether_shost, if_walker->addr, 6);
+            sr_send_packet (sr 
+                            ,out
+                            ,sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t)
+                            ,if_walker->name);
+        }
+        /*printf("Searching for %s in:\n", if_walker->name);
         while(if_walker)
         {
             printf("\t%s",req->packets->iface);
-            if (strcmp(if_walker->name,req->packets->iface)){
-                arpHeader->ar_sip = if_walker->ip;
-                memcpy(arpHeader->ar_sha, if_walker->addr, 6);/*ENDIANESS*/
-                memcpy(ethHeader->ether_shost, if_walker->addr, 6);
-                sr_send_packet (sr 
-                                ,out
-                                ,sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t)
-                                ,if_walker->name);
-                break;
-            }
+            arpHeader->ar_sip = if_walker->ip;
+            memcpy(arpHeader->ar_sha, if_walker->addr, 6);
+            memcpy(ethHeader->ether_shost, if_walker->addr, 6);
+            sr_send_packet (sr 
+                            ,out
+                            ,sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t)
+                            ,if_walker->name);
             if_walker = if_walker->next;
         }
-        printf("\n");
+        printf("\n");*/
         req->sent = curtime;
         req->times_sent++;
         free(out);

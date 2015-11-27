@@ -154,7 +154,7 @@ void handleIPPacket(struct sr_instance* sr,
             ip_header->ip_ttl = ip_header->ip_ttl - 1;
             ip_header->ip_sum = 0;
             ip_header->ip_sum = cksum((uint8_t *)ip_header,20);
-            sr_send_packet(sr,packet,len,iface->name);
+            sr_send_packet(sr,packet,len,rt->interface);
             free(entry);
         } else if (rt) {
             printf("Adding ARP Request\n");
@@ -165,7 +165,7 @@ void handleIPPacket(struct sr_instance* sr,
                                         ip_header->ip_dst, 
                                         packet, 
                                         len, 
-                                        iface->name);
+                                        rt->interface);
             sr_handle_arpreq(sr,req);
         } else {
             sr_send_icmp(sr, packet, len, 3, 0, 0);
@@ -275,7 +275,7 @@ void sr_send_icmp(struct sr_instance* sr,
         if (entry){
             printf("Found cache hit\n");
             memcpy(eth_header->ether_dhost,entry->mac,6);
-            sr_send_packet(sr,packet,len,iface->name);
+            sr_send_packet(sr,packet,len,rt->interface);
             free(entry);
         } else {
             printf("Adding ARP Request\n");
@@ -284,7 +284,7 @@ void sr_send_icmp(struct sr_instance* sr,
                                         ip_header->ip_dst, 
                                         packet, 
                                         len, 
-                                        iface->name);
+                                        rt->interface);
             sr_handle_arpreq(sr,req);
         }
     }
