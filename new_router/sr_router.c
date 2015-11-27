@@ -151,6 +151,9 @@ void handleIPPacket(struct sr_instance* sr,
             iface = sr_get_interface(sr, rt->interface);
             memcpy(eth_header->ether_dhost,entry->mac,6);
             memcpy(eth_header->ether_shost,iface->addr,6);
+            ip_header->ip_ttl = ip_header->ip_ttl - 1;
+            ip_header->ip_sum = 0;
+            ip_header->ip_sum = cksum((uint8_t *)ip_header,20);
             sr_send_packet(sr,packet,len,iface->name);
             free(entry);
         } else if (rt) {
