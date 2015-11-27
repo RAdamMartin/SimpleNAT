@@ -127,10 +127,10 @@ void handleIPPacket(struct sr_instance* sr,
         fprintf(stderr,"For us\n");
         if(ip_header->ip_p==6){ /*TCP*/
             fprintf(stderr,"TCP\n");
-            sr_send_icmp(sr, packet, len, 3, 3, 0);
+            sr_send_icmp(sr, packet, len, 3, 3, ip_header->ip_dst);
         } else if (ip_header->ip_p==17){ /*UDP*/
             fprintf(stderr,"UDP\n");
-            sr_send_icmp(sr, packet, len, 3, 3, 0);
+            sr_send_icmp(sr, packet, len, 3, 3, ip_header->ip_dst);
         } else if (ip_header->ip_p==1 && ip_header->ip_tos==0){ /*ICMP PING*/
             fprintf(stderr,"ICMP\n");
             sr_icmp_hdr_t* icmp_header = (sr_icmp_hdr_t *)(packet+SIZE_ETH+SIZE_IP);

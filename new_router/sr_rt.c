@@ -212,14 +212,6 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
         }
     }
     rt_walker = rt_walker->next;
-    /*print_addr_ip_int(rt_entry);
-    uint32_t match = ip&rt_entry;
-    if (match > best_match && match == (rt_ip&rt_msk)){
-        fprintf(stderr,"Found match for %d with %d\n",ip, rt_ip);
-        best_match = match;
-        rt = rt_walker;
-    }
-    rt_walker = rt_walker->next;*/ 
   }
   return rt;
 } /* -- sr_find_routing_entry -- */

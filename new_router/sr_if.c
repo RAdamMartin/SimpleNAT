@@ -200,6 +200,7 @@ struct sr_if *sr_get_interface_from_ip(struct sr_instance* sr, uint32_t ip)
     if_walker = sr->if_list;
     fprintf(stderr,"searching for %d = ",ip);
     print_addr_ip_int(ip);
+    
     while(if_walker)
     {
         fprintf(stderr,"Comparing to %d = ", if_walker->ip);
@@ -211,5 +212,4 @@ struct sr_if *sr_get_interface_from_ip(struct sr_instance* sr, uint32_t ip)
     }
 
     return NULL;
-
-} /* -- sr_get_iface -- */
+} /* -- sr_get_interface_from_ip -- */
