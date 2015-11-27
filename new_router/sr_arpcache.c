@@ -141,7 +141,7 @@ struct sr_arpreq *sr_arpcache_insert(struct sr_arpcache *cache,
         cache->entries[i].added = time(NULL);
         cache->entries[i].valid = 1;
     }
-    sr_arpcache_dump(cache);
+    /*sr_arpcache_dump(cache);*/
     pthread_mutex_unlock(&(cache->lock));
     
     return req;
