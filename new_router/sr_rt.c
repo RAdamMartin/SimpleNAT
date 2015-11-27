@@ -190,8 +190,7 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
   }
 
   rt_walker = sr->routing_table;
-  fprintf(stderr,"Finding LPM for\n");
-  ip = ip;
+  fprintf(stderr,"Finding LPM for %d = ", ip);
   print_addr_ip_int(ip);
   while(rt_walker){
     uint32_t rt_ip = (uint32_t)(rt_walker->dest.s_addr);
@@ -200,8 +199,14 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
     uint32_t ip_with_mask = (ip&rt_msk);
     if((ip_with_mask^rt_entry) == 0){
         if (rt_msk+1 == 0){
+            fprintf(stderr,"\t Found perfect match LPM with %d = ", rt_ip);
+            print_addr_ip_int(rt_ip);
             return rt_walker;
         } else if (rt_msk > best_match){
+            fprintf(stderr,"\t Found partial match LPM with %d = ", rt_ip);
+            print_addr_ip_int(rt_ip);
+            fprintf(stderr,"\t \t Mask of %d = ", rt_msk);
+            print_addr_ip_int(rt_msk);
             best_match = rt_msk;
             rt = rt_walker;
         }

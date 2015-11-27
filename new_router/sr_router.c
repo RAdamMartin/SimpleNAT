@@ -76,7 +76,7 @@ void handleARPpacket(struct sr_instance *sr,
             sr_send_packet(sr, packet, SIZE_ETH+SIZE_ARP, iface->name);
         }
     /*else if (ntohs(arp_header->ar_op) == arp_op_reply){} && strcmp(iface->addr,eth_header->ether_dhost) == 0){*/
-        fprintf(stderr,"Processing ARP reply\n");
+        else{fprintf(stderr,"Processing ARP reply\n");}
         struct sr_arpreq *req;
         struct sr_packet *pckt;
         req = sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
