@@ -65,11 +65,15 @@ int main(int argc, char **argv)
     unsigned int port = DEFAULT_PORT;
     unsigned int topo = DEFAULT_TOPO;
     char *logfile = 0;
+    unsigned short mode = 0;
+    unsigned int nat_icmpTO = 60;
+    unsigned int nat_tcpEstTO = 7440;
+    unsigned int nat_tcpTransTO = 300;
     struct sr_instance sr;
 
     printf("Using %s\n", VERSION_INFO);
 
-    while ((c = getopt(argc, argv, "hs:v:p:u:t:r:l:T:")) != EOF)
+    while ((c = getopt(argc, argv, "hs:v:p:u:t:r:l:T:n:I:E:R:")) != EOF)
     {
         switch (c)
         {
@@ -101,6 +105,19 @@ int main(int argc, char **argv)
             case 'T':
                 template = optarg;
                 break;
+            case 'n':
+                mode = 1;
+                break;
+            case 'I':
+                nat_icmpTO = atoi((char *) optarg);
+                break;
+            case 'E':
+                nat_tcpEstTO = atoi((char *) optarg);
+                break;
+            case 'R':
+                nat_tcpTransTO = atoi((char *) optarg);
+                break;
+                
         } /* switch */
     } /* -- while -- */
 
@@ -157,7 +174,7 @@ int main(int argc, char **argv)
     }
 
     /* call router init (for arp subsystem etc.) */
-    sr_init(&sr);
+    sr_init(&sr, mode, nat_icmpTO, nat_tcpEstTO, nat_tcpTransTO);
 
     /* -- whizbang main loop ;-) */
     while( sr_read_from_server(&sr) == 1);

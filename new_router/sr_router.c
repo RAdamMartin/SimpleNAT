@@ -22,6 +22,7 @@
 #include "sr_protocol.h"
 #include "sr_arpcache.h"
 #include "sr_utils.h"
+#include "sr_nat.h"
 
 /*INTERNAL TO sr_router*/
 void sendIPPacket(struct sr_instance* sr,
@@ -161,7 +162,11 @@ void handleIPPacket(struct sr_instance* sr,
     }
 }/* end handleIPPacket */
 
-void sr_init(struct sr_instance* sr)
+void sr_init(struct sr_instance* sr, 
+             unsigned int mode,
+             unsigned int icmp_timeout,
+             unsigned int tcp_est_timeout,
+             unsigned int tcp_trans_timeout)
 {
     /* REQUIRES */
     assert(sr);
@@ -177,6 +182,9 @@ void sr_init(struct sr_instance* sr)
 
     pthread_create(&thread, &(sr->attr), sr_arpcache_timeout, sr);    
     /* Add initialization code here! */
+    if (mode == 1){
+        sr_nat_init(&(sr->nat), icmp_timeout, tcp_est_timeout, tcp_trans_timeout);
+    }
 } /* -- sr_init -- */
 
 /*---------------------------------------------------------------------

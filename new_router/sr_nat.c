@@ -4,7 +4,10 @@
 #include "sr_nat.h"
 #include <unistd.h>
 
-int sr_nat_init(struct sr_nat *nat) { /* Initializes the nat */
+int sr_nat_init(struct sr_nat *nat,
+                unsigned int icmp_timeout,
+                unsigned int tcp_est_timeout,
+                unsigned int tcp_trans_timeout) {
 
   assert(nat);
 
@@ -25,6 +28,9 @@ int sr_nat_init(struct sr_nat *nat) { /* Initializes the nat */
 
   nat->mappings = NULL;
   /* Initialize any variables here */
+  nat->icmp_to = icmp_timeout;
+  nat->tcp_est_to = tcp_est_timeout;
+  nat->tcp_trans_to = tcp_trans_timeout;
 
   return success;
 }
