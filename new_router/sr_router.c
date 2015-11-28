@@ -162,8 +162,20 @@ void handleIPPacket(struct sr_instance* sr,
     }
 }/* end handleIPPacket */
 
+void natHandleIPPacket(struct sr_instance* sr, 
+        uint8_t* packet,
+        unsigned int len, 
+        struct sr_if * rec_iface)
+{
+    if (strcmp(rec_iface->name, "eth1") == 0){ /*INTERNAL*/
+        
+    } else if (strcmp(rec_iface->name, "eth2") == 0){ /*EXTERNAL*/
+        
+    }
+}/* end nathandleIPPacket */
+
 void sr_init(struct sr_instance* sr, 
-             unsigned int mode,
+             unsigned short mode,
              unsigned int icmp_timeout,
              unsigned int tcp_est_timeout,
              unsigned int tcp_trans_timeout)
@@ -182,6 +194,7 @@ void sr_init(struct sr_instance* sr,
 
     pthread_create(&thread, &(sr->attr), sr_arpcache_timeout, sr);    
     /* Add initialization code here! */
+    sr->mode = mode;
     if (mode == 1){
         sr_nat_init(&(sr->nat), icmp_timeout, tcp_est_timeout, tcp_trans_timeout);
     }
@@ -220,7 +233,12 @@ void sr_handlepacket(struct sr_instance* sr,
         if(packet_type == ethertype_arp){
             handleARPpacket(sr, ether_packet, len, iface);
         }else if(packet_type==ethertype_ip){
-            handleIPPacket(sr, ether_packet, len, iface);
+            if (sr->mode == 0){
+                handleIPPacket(sr, ether_packet, len, iface);
+            } else if (sr->mode == 1){
+                handleIPPacket(sr, ether_packet, len, iface);
+                /*natHandleIPPacket(sr, ether_packet, len, iface);*/
+            }
         }else{
             fprintf(stderr,"Unsupported Protocol!\n");
         }

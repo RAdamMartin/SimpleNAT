@@ -55,6 +55,7 @@ struct sr_instance
     struct sr_arpcache cache;   /* ARP cache */
     pthread_attr_t attr;
     struct sr_nat nat;
+    unsigned short mode;
     FILE* logfile;
 };
 
@@ -68,7 +69,7 @@ int sr_read_from_server(struct sr_instance* );
 
 /* -- sr_router.c -- */
 void sr_init(struct sr_instance* sr, 
-             unsigned int mode,
+             unsigned short mode,
              unsigned int icmp_timeout,
              unsigned int tcp_est_timeout,
              unsigned int tcp_trans_timeout);
