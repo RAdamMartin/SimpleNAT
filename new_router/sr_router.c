@@ -167,8 +167,24 @@ void natHandleIPPacket(struct sr_instance* sr,
         unsigned int len, 
         struct sr_if * rec_iface)
 {
+    sr_ip_hdr_t * ip_header = (sr_ip_hdr_t *)(packet+SIZE_ETH);
+    struct sr_if *tgt_iface= sr_get_interface_from_ip(sr,ip_header->ip_dst);
+
+    uint16_t incm_cksum = ip_header->ip_sum;
+    ip_header->ip_sum = 0;
+    uint16_t calc_cksum = cksum((uint8_t*)ip_header,20);
+    ip_header->ip_sum = incm_cksum;
     if (strcmp(rec_iface->name, "eth1") == 0){ /*INTERNAL*/
-        
+        if (calc_cksum != incm_cksum){
+            fprintf(stderr,"Bad checksum\n");
+        } else if (tgt_iface != NULL){
+            handleIPPacket(sr, packet, len, rec_iface);
+        } else if (ip_header->ip_ttl <= 1){
+            fprintf(stderr,"Packet died\n");
+            sr_send_icmp(sr, packet, len, 11, 0,0);
+        } else {
+            fprintf(stderr,"Not for us\n");
+        }
     } else if (strcmp(rec_iface->name, "eth2") == 0){ /*EXTERNAL*/
         
     }
