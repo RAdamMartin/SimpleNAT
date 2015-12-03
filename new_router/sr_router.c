@@ -175,7 +175,7 @@ void natHandleIPPacket(struct sr_instance* sr,
     uint16_t calc_cksum = cksum((uint8_t*)ip_header,20);
     ip_header->ip_sum = incm_cksum;
     
-    rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
+    struct sr_rt * rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
     
     if (calc_cksum != incm_cksum){
         fprintf(stderr,"Bad checksum\n");
