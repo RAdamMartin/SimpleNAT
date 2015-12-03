@@ -174,19 +174,28 @@ void natHandleIPPacket(struct sr_instance* sr,
     ip_header->ip_sum = 0;
     uint16_t calc_cksum = cksum((uint8_t*)ip_header,20);
     ip_header->ip_sum = incm_cksum;
-    if (strcmp(rec_iface->name, "eth1") == 0){ /*INTERNAL*/
-        if (calc_cksum != incm_cksum){
-            fprintf(stderr,"Bad checksum\n");
-        } else if (tgt_iface != NULL){
+    if (calc_cksum != incm_cksum){
+        fprintf(stderr,"Bad checksum\n");
+    } else if (strcmp(rec_iface->name, "eth1") == 0){ /*INTERNAL*/
+        if (tgt_iface != NULL){
             handleIPPacket(sr, packet, len, rec_iface);
         } else if (ip_header->ip_ttl <= 1){
             fprintf(stderr,"Packet died\n");
             sr_send_icmp(sr, packet, len, 11, 0,0);
-        } else {
-            fprintf(stderr,"Not for us\n");
+        } else if(ip_header->ip_p==6) { /*TCP*/
+            fprintf(stderr,"FWD TCP from int\n");
+        } else if(ip_header->ip_p==1 ) { /*ICMP*/
+            fprintf(stderr,"FWD ICMP from int\n");
         }
     } else if (strcmp(rec_iface->name, "eth2") == 0){ /*EXTERNAL*/
-        
+        if (ip_header->ip_ttl <= 1){
+            fprintf(stderr,"Packet died\n");
+            sr_send_icmp(sr, packet, len, 11, 0,0);
+        } else if(ip_header->ip_p==6) { /*TCP*/
+            fprintf(stderr,"FWD TCP from ext\n");
+        } else if(ip_header->ip_p==1 ) { /*ICMP*/
+            fprintf(stderr,"FWD ICMP from ext\n");
+        } 
     }
 }/* end nathandleIPPacket */
 
