@@ -73,7 +73,7 @@ void handleARPpacket(struct sr_instance *sr,
     }
     else if(ntohs(arp_header->ar_op) == arp_op_request){
         fprintf(stderr,"Replying to ARP request\n");
-        sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);
+        /*sr_arpcache_insert(&(sr->cache), arp_header->ar_sha, arp_header->ar_sip);*/
         /*Setup ETH Header for Reply*/
         memcpy(eth_header->ether_dhost, arp_header->ar_sha,6);
         memcpy(eth_header->ether_shost, rec_iface->addr,6);
@@ -174,10 +174,13 @@ void natHandleIPPacket(struct sr_instance* sr,
     ip_header->ip_sum = 0;
     uint16_t calc_cksum = cksum((uint8_t*)ip_header,20);
     ip_header->ip_sum = incm_cksum;
+    
+    rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
+    
     if (calc_cksum != incm_cksum){
         fprintf(stderr,"Bad checksum\n");
     } else if (strcmp(rec_iface->name, "eth1") == 0){ /*INTERNAL*/
-        if (tgt_iface != NULL){
+        if (tgt_iface != NULL || rt == NULL){
             handleIPPacket(sr, packet, len, rec_iface);
         } else if (ip_header->ip_ttl <= 1){
             fprintf(stderr,"Packet died\n");
@@ -191,6 +194,8 @@ void natHandleIPPacket(struct sr_instance* sr,
         if (ip_header->ip_ttl <= 1){
             fprintf(stderr,"Packet died\n");
             sr_send_icmp(sr, packet, len, 11, 0,0);
+        } else if (tgt_iface == NULL) {
+            
         } else if(ip_header->ip_p==6) { /*TCP*/
             fprintf(stderr,"FWD TCP from ext\n");
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
