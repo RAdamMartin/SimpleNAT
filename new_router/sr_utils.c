@@ -122,20 +122,20 @@ void print_hdr_icmp(uint8_t *buf) {
 void print_hdr_icp(uint8_t *buf) {
   sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(buf);
   fprintf(stderr, "TCP header:\n");
-  fprintf(stderr, "\toff:\t%u",tcp_header->tcp_off);
-  fprintf(stderr, "\tns:\t%u", tcp_header->tcp_ns);
-  fprintf(stderr, "\tres:\t%u",tcp_header->reserved);
-  fprintf(stderr, "\tcwr:\t%u",tcp_header->tcp_cwr);
-  fprintf(stderr, "\tece:\t%u",tcp_header->tcp_ece);
-  fprintf(stderr, "\turg:\t%u",tcp_header->urg);
-  fprintf(stderr, "\tack:\t%u",tcp_header->ack);
-  fprintf(stderr, "\tpsh:\t%u",tcp_header->psh);
-  fprintf(stderr, "\trst:\t%u",tcp_header->rst);
-  fprintf(stderr, "\tsyn:\t%u",tcp_header->syn);
-  fprintf(stderr, "\tfin:\t%u",tcp_header->fin);
-  fprintf(stderr, "\twdw:\t%u",tcp_header->tcp_wdw);
-  fprintf(stderr, "\tsum:\t%u",tcp_header->tcp_sum);
-  fprintf(stderr, "\tptr:\t%u",tcp_header->tcp_ptr);
+  fprintf(stderr, "\toff:\t%u\n",tcp_header->tcp_off);
+  fprintf(stderr, "\tns:\t%u\n", tcp_header->tcp_ns);
+  fprintf(stderr, "\tres:\t%u\n",tcp_header->reserved);
+  fprintf(stderr, "\tcwr:\t%u\n",tcp_header->tcp_cwr);
+  fprintf(stderr, "\tece:\t%u\n",tcp_header->tcp_ece);
+  fprintf(stderr, "\turg:\t%u\n",tcp_header->urg);
+  fprintf(stderr, "\tack:\t%u\n",tcp_header->ack);
+  fprintf(stderr, "\tpsh:\t%u\n",tcp_header->psh);
+  fprintf(stderr, "\trst:\t%u\n",tcp_header->rst);
+  fprintf(stderr, "\tsyn:\t%u\n",tcp_header->syn);
+  fprintf(stderr, "\tfin:\t%u\n",tcp_header->fin);
+  fprintf(stderr, "\twdw:\t%u\n",tcp_header->tcp_wdw);
+  fprintf(stderr, "\tsum:\t%u\n",tcp_header->tcp_sum);
+  fprintf(stderr, "\tptr:\t%u\n",tcp_header->tcp_ptr);
 }
 
 
