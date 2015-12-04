@@ -157,6 +157,7 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   /*mapping->ip_ext = ??*/
   mapping->aux_int = aux_int;
   mapping->last_updated = time(NULL);
+  mapping->type = type;
   mapping->next = nat->mappings;
   
   if (type == nat_mapping_icmp){
