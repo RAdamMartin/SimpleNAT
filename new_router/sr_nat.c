@@ -43,6 +43,18 @@ int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
   pthread_mutex_lock(&(nat->lock));
 
   /* free nat memory here */
+  struct sr_nat_mapping *maps = nat->mappings;
+  struct sr_nat_connection *conns = NULL;
+  while(maps != NULL){
+    conns = maps->conns;
+    while (conns != NULL) {
+      conns = conns->next;
+      free(maps->conns);
+      maps->conns = conns;
+    }
+    free(maps);
+    maps = maps->next;
+  }
 
   pthread_kill(nat->thread, SIGKILL);
   return pthread_mutex_destroy(&(nat->lock)) &&
@@ -76,7 +88,6 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
       maps = maps->next;
     }
     
-
     pthread_mutex_unlock(&(nat->lock));
   }
   return NULL;
