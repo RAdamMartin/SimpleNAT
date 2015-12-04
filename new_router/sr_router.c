@@ -244,7 +244,9 @@ void natHandleIPPacket(struct sr_instance* sr,
                 map = sr_nat_lookup_external(&(sr->nat),
                                              icmp_header->icmp_id,
                                              nat_mapping_icmp);
-                rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
+                if (map != NULL){
+                    rt = (struct sr_rt*)sr_find_routing_entry_int(sr, map->ip_int);
+                }
                 if (rt != NULL){
                     icmp_header->icmp_id = map->aux_int;
                     icmp_header->icmp_sum = 0;
