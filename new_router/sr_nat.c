@@ -112,7 +112,7 @@ struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
       memcpy(copy,maps,sizeof(struct sr_nat_mapping));
       return copy;
     }
-    copy = copy->next;
+    maps = maps->next;
   }
 
   pthread_mutex_unlock(&(nat->lock));
@@ -135,7 +135,7 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
       memcpy(copy,maps,sizeof(struct sr_nat_mapping));
       return copy;
     }
-    copy = copy->next;
+    maps = maps->next;
   }
 
   pthread_mutex_unlock(&(nat->lock));
