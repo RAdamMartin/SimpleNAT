@@ -241,13 +241,16 @@ void natHandleIPPacket(struct sr_instance* sr,
                 fprintf(stderr,"Bad cksum %d != %d\n", incm_cksum, calc_cksum);
             }
             else if (icmp_header->icmp_type == 0 && icmp_header->icmp_code == 0){
+                fprintf(stderr,"\t extfwd 1\n");
                 map = sr_nat_lookup_external(&(sr->nat),
                                              icmp_header->icmp_id,
                                              nat_mapping_icmp);
                 if (map != NULL){
+                    fprintf(stderr,"\t extfwd 2\n");
                     rt = (struct sr_rt*)sr_find_routing_entry_int(sr, map->ip_int);
                 }
                 if (rt != NULL){
+                    fprintf(stderr,"\t extfwd 3\n");
                     icmp_header->icmp_id = map->aux_int;
                     icmp_header->icmp_sum = 0;
                     icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,len-SIZE_ETH-SIZE_IP);
