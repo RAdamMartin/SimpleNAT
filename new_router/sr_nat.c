@@ -33,6 +33,9 @@ int sr_nat_init(struct sr_nat *nat,
   nat->icmp_to = icmp_timeout;
   nat->tcp_est_to = tcp_est_timeout;
   nat->tcp_trans_to = tcp_trans_timeout;
+  
+  nat->icmp_id = (unsigned short)(time(NULL));
+  nat->tcp_id = 1024;
 
   return success;
 }
@@ -153,9 +156,19 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   mapping->ip_int = ip_int;
   /*mapping->ip_ext = ??*/
   mapping->aux_int = aux_int;
-  /*mapping->aux_ext ? TODO*/
   mapping->last_updated = time(NULL);
   mapping->next = nat->mappings;
+  
+  if (type == nat_mapping_icmp){
+    mapping->aux_ext = nat->icmp_id;
+    nat->icmp_id += 1;
+  } else {
+    mapping->aux_ext = nat->tcp_id;
+    nat->tcp_id += 1;
+    if (nat->tcp_id == 0){
+      nat->tcp_id = 1024;
+    }
+  }
   
   nat->mappings = mapping;
   struct sr_nat_mapping *ret_map = malloc(sizeof(struct sr_nat_mapping));

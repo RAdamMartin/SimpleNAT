@@ -168,14 +168,14 @@ void natHandleIPPacket(struct sr_instance* sr,
         struct sr_if * rec_iface)
 {
     sr_ip_hdr_t * ip_header = (sr_ip_hdr_t *)(packet+SIZE_ETH);
-    struct sr_if *tgt_iface= sr_get_interface_from_ip(sr,ip_header->ip_dst);
+    struct sr_if *tgt_iface = sr_get_interface_from_ip(sr,ip_header->ip_dst);
+    struct sr_rt * rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
+    struct sr_nat_mapping *map = NULL;
 
     uint16_t incm_cksum = ip_header->ip_sum;
     ip_header->ip_sum = 0;
     uint16_t calc_cksum = cksum((uint8_t*)ip_header,20);
     ip_header->ip_sum = incm_cksum;
-    
-    struct sr_rt * rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
     
     if (calc_cksum != incm_cksum){
         fprintf(stderr,"Bad checksum\n");
@@ -189,6 +189,18 @@ void natHandleIPPacket(struct sr_instance* sr,
             fprintf(stderr,"FWD TCP from int\n");
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
             fprintf(stderr,"FWD ICMP from int\n");
+            /*sr_icmp_hdr_t * icmp_header = (sr_icmp_hdr_t*)(packet+SIZE_ETH+SIZE_IP);*/
+            map = sr_nat_lookup_internal(&(sr->nat),
+                                         ip_header->ip_src,
+                                         ip_header->ip_id,
+                                         nat_mapping_icmp);
+            if (map == NULL){
+                map = sr_nat_insert_mapping(&(sr->nat),
+                                         ip_header->ip_src,
+                                         ip_header->ip_id,
+                                         nat_mapping_icmp);
+                map->ip_ext = ip_header->ip_dst;
+            }
         }
     } else if (strcmp(rec_iface->name, "eth2") == 0){ /*EXTERNAL*/
         if (ip_header->ip_ttl <= 1){
@@ -200,6 +212,7 @@ void natHandleIPPacket(struct sr_instance* sr,
             fprintf(stderr,"FWD TCP from ext\n");
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
             fprintf(stderr,"FWD ICMP from ext\n");
+            /*sr_icmp_hdr_t * icmp_header = (sr_icmp_hdr_t*)(packet+SIZE_ETH+SIZE_IP);*/
         } 
     }
 }/* end natHandleIPPacket */

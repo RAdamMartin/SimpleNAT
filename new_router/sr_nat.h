@@ -35,6 +35,9 @@ struct sr_nat {
   unsigned int icmp_to;
   unsigned int tcp_est_to;
   unsigned int tcp_trans_to;
+  
+  unsigned short icmp_id;
+  unsigned short tcp_id;
    
   /* threading */
   pthread_mutex_t lock;
