@@ -244,9 +244,10 @@ void natHandleIPPacket(struct sr_instance* sr,
             }
             else if (icmp_header->icmp_type == 0 && icmp_header->icmp_code == 0){
                 fprintf(stderr,"\t extfwd icmp id %d\n", icmp_header->icmp_id);
-                map = sr_nat_lookup_external(&(sr->nat),
+                /*map = sr_nat_lookup_external(&(sr->nat),
                                              icmp_header->icmp_id,
-                                             nat_mapping_icmp);
+                                             nat_mapping_icmp);*/
+                                             map = sr->nat.mappings;
                 if (map != NULL){
                     fprintf(stderr,"\t extfwd found mapping\n");
                     rt = (struct sr_rt*)sr_find_routing_entry_int(sr, map->ip_int);
