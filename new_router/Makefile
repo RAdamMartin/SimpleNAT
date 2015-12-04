@@ -82,5 +82,5 @@ tags:
 	ctags *.c
 	
 submit:
-	@tar -czf router-submit.tar.gz $(sr_SRCS) $(sr_HDRS) README Makefile
+	@tar -czf g3adam.tar.gz $(sr_SRCS) $(sr_HDRS) README Makefile
 

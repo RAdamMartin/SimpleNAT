@@ -195,14 +195,14 @@ void natHandleIPPacket(struct sr_instance* sr,
             fprintf(stderr,"Packet died\n");
             sr_send_icmp(sr, packet, len, 11, 0,0);
         } else if (tgt_iface == NULL) {
-            
+            fprintf(stderr,"NAT Not for us\n");
         } else if(ip_header->ip_p==6) { /*TCP*/
             fprintf(stderr,"FWD TCP from ext\n");
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
             fprintf(stderr,"FWD ICMP from ext\n");
         } 
     }
-}/* end nathandleIPPacket */
+}/* end natHandleIPPacket */
 
 void sr_init(struct sr_instance* sr, 
              unsigned short mode,
