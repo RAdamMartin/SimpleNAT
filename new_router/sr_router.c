@@ -226,6 +226,7 @@ void sr_init(struct sr_instance* sr,
     /* Add initialization code here! */
     sr->mode = mode;
     if (mode == 1){
+        fprintf(stderr,"Nat mode enabled!\n");
         sr_nat_init(&(sr->nat), icmp_timeout, tcp_est_timeout, tcp_trans_timeout);
     }
 } /* -- sr_init -- */
