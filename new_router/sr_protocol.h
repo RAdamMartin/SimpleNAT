@@ -78,6 +78,7 @@
 #define SIZE_IP sizeof(sr_ip_hdr_t)
 #define SIZE_ARP sizeof(sr_arp_hdr_t)
 #define SIZE_ICMP sizeof(sr_icmp_t3_hdr_t)
+#define SIZE_TCMP sizeof(sr_tcp_hdr_t)
 
 /* Structure of a ICMP header
  */
@@ -116,6 +117,45 @@ struct sr_icmp_t3_hdr {
 typedef struct sr_icmp_t3_hdr sr_icmp_t3_hdr_t;
 
 
+/* Structure of a TCP header
+ */
+struct sr_tcp_hdr {
+  uint16_t tcp_src;
+  uint16_t tcp_dst;
+  uint32_t tcp_seq;
+  uint32_t tcp_ack;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+  unsigned int tcp_ns:1;
+  unsigned int reserved:3;
+  unsigned int tcp_off:4;
+  unsigned int ctrl_fin:1;
+  unsigned int ctrl_syn:1;
+  unsigned int ctrl_rst:1;
+  unsigned int ctrl_psh:1;
+  unsigned int ctrl_ack:1;
+  unsigned int ctrl_urg:1;
+  unsigned int tcp_ece:1;
+  unsigned int tcp_cwr:1;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+  unsigned int tcp_off:4;
+  unsigned int reserved:3;
+  unsigned int tcp_ns:1;
+  unsigned int tcp_cwr:1;
+  unsigned int tcp_ece:1;
+  unsigned int ctrl_urg:1;
+  unsigned int ctrl_ack:1;
+  unsigned int ctrl_psh:1;
+  unsigned int ctrl_rst:1;
+  unsigned int ctrl_syn:1;
+  unsigned int ctrl_fin:1;
+#else
+#error "Byte ordering ot specified " 
+#endif 
+  uint16_t tcp_wdw;
+  uint16_t tcp_sum;
+  uint16_t tcp_ptr;
+} __attribute__ ((packed)) ;
+typedef struct sr_tcp_hdr sr_tcp_hdr_t;
 
 
 /*
