@@ -40,6 +40,7 @@ void print_addr_ip_int(uint32_t ip);
 void print_hdr_eth(uint8_t *buf);
 void print_hdr_ip(uint8_t *buf);
 void print_hdr_icmp(uint8_t *buf);
+void print_hdr_icp(uint8_t *buf);
 void print_hdr_arp(uint8_t *buf);
 
 /* prints all headers, starting from eth */

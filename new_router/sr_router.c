@@ -190,18 +190,7 @@ void natHandleIPPacket(struct sr_instance* sr,
             sr_send_icmp(sr, packet, len, 11, 0,0);
         } else if(ip_header->ip_p==6) { /*TCP*/
             fprintf(stderr,"FWD TCP from int\n");
-            sr_tcp_hdr_t * tcp_header = (sr_tcp_hdr_t*)(packet+SIZE_ETH+SIZE_IP);
-            fprintf(stderr, "\toff:\t%u",tcp_header->tcp_off);
-            fprintf(stderr, "\tns:\t%u", tcp_header->tcp_ns);
-            fprintf(stderr, "\tres:\t%u",tcp_header->reserved);
-            fprintf(stderr, "\tcwr:\t%u",tcp_header->tcp_cwr);
-            fprintf(stderr, "\tece:\t%u",tcp_header->tcp_ece);
-            fprintf(stderr, "\turg:\t%u",tcp_header->urg);
-            fprintf(stderr, "\tack:\t%u",tcp_header->ack);
-            fprintf(stderr, "\tpsh:\t%u",tcp_header->psh);
-            fprintf(stderr, "\trst:\t%u",tcp_header->rst);
-            fprintf(stderr, "\tsyn:\t%u",tcp_header->syn);
-            fprintf(stderr, "\tfin:\t%u",tcp_header->fin);
+            print_hdr_icp(packet+SIZE_ETH+SIZE_IP);
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
             fprintf(stderr,"FWD ICMP from int\n");
             sr_icmp_t8_hdr_t * icmp_header = (sr_icmp_t8_hdr_t*)(packet+SIZE_ETH+SIZE_IP);
@@ -244,6 +233,7 @@ void natHandleIPPacket(struct sr_instance* sr,
             fprintf(stderr,"NAT Not for us\n");
         } else if(ip_header->ip_p==6) { /*TCP*/
             fprintf(stderr,"FWD TCP from ext\n");
+            print_hdr_icp(packet+SIZE_ETH+SIZE_IP);
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
             fprintf(stderr,"FWD ICMP from ext\n");
             sr_icmp_t8_hdr_t * icmp_header = (sr_icmp_t8_hdr_t*)(packet+SIZE_ETH+SIZE_IP);
