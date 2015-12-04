@@ -176,7 +176,7 @@ void natHandleIPPacket(struct sr_instance* sr,
 
     uint16_t incm_cksum = ip_header->ip_sum;
     ip_header->ip_sum = 0;
-    uint16_t calc_cksum = cksum((uint8_t*)ip_header,20);
+    uint16_t calc_cksum = cksum((uint8_t*)ip_header,SIZE_IP);
     ip_header->ip_sum = incm_cksum;
     
     if (calc_cksum != incm_cksum){
@@ -218,7 +218,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                 
                 ip_header->ip_src = ext_if->ip;
                 ip_header->ip_sum = 0;
-                ip_header->ip_sum = cksum((uint8_t*)ip_header,20);
+                ip_header->ip_sum = cksum((uint8_t*)ip_header,SIZE_IP);
                 sendIPPacket(sr, packet, len, rt);
             }
         }
@@ -252,7 +252,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                     
                     ip_header->ip_dst = map->ip_int;
                     ip_header->ip_sum = 0;
-                    ip_header->ip_sum = cksum((uint8_t*)ip_header,20);
+                    ip_header->ip_sum = cksum((uint8_t*)ip_header,SIZE_IP);
                     sendIPPacket(sr, packet, len, rt);
                 }
             }
