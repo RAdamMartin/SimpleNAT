@@ -70,7 +70,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
   while (1) {
     sleep(1.0);
     pthread_mutex_lock(&(nat->lock));
-
+if(0){
     time_t curtime = time(NULL);
     /* handle periodic tasks here */
     struct sr_nat_mapping *maps = nat->mappings;
@@ -90,7 +90,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
       prev = maps;
       maps = maps->next;
     }
-    
+}
     pthread_mutex_unlock(&(nat->lock));
   }
   return NULL;
