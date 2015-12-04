@@ -128,12 +128,12 @@ struct sr_tcp_hdr {
   unsigned int tcp_ns:1;
   unsigned int reserved:3;
   unsigned int tcp_off:4;
-  unsigned int ctrl_fin:1;
-  unsigned int ctrl_syn:1;
-  unsigned int ctrl_rst:1;
-  unsigned int ctrl_psh:1;
-  unsigned int ctrl_ack:1;
-  unsigned int ctrl_urg:1;
+  unsigned int fin:1;
+  unsigned int syn:1;
+  unsigned int rst:1;
+  unsigned int psh:1;
+  unsigned int ack:1;
+  unsigned int urg:1;
   unsigned int tcp_ece:1;
   unsigned int tcp_cwr:1;
 #elif __BYTE_ORDER == __BIG_ENDIAN
@@ -142,12 +142,12 @@ struct sr_tcp_hdr {
   unsigned int tcp_ns:1;
   unsigned int tcp_cwr:1;
   unsigned int tcp_ece:1;
-  unsigned int ctrl_urg:1;
-  unsigned int ctrl_ack:1;
-  unsigned int ctrl_psh:1;
-  unsigned int ctrl_rst:1;
-  unsigned int ctrl_syn:1;
-  unsigned int ctrl_fin:1;
+  unsigned int urg:1;
+  unsigned int ack:1;
+  unsigned int psh:1;
+  unsigned int rst:1;
+  unsigned int syn:1;
+  unsigned int fin:1;
 #else
 #error "Byte ordering ot specified " 
 #endif 
