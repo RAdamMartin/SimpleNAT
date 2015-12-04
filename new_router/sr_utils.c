@@ -122,6 +122,10 @@ void print_hdr_icmp(uint8_t *buf) {
 void print_hdr_icp(uint8_t *buf) {
   sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(buf);
   fprintf(stderr, "TCP header:\n");
+  fprintf(stderr, "\tsrc:\t%u\n",tcp_header->tcp_src);
+  fprintf(stderr, "\tdst:\t%u\n", tcp_header->tcp_dst);
+  fprintf(stderr, "\tseq:\t%u\n",tcp_header->tcp_seq);
+  fprintf(stderr, "\tack:\t%u\n",tcp_header->tcp_ack);
   fprintf(stderr, "\toff:\t%u\n",tcp_header->tcp_off);
   fprintf(stderr, "\tns:\t%u\n", tcp_header->tcp_ns);
   fprintf(stderr, "\tres:\t%u\n",tcp_header->reserved);
