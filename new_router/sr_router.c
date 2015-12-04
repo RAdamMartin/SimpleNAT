@@ -169,8 +169,10 @@ void natHandleIPPacket(struct sr_instance* sr,
 {
     sr_ip_hdr_t * ip_header = (sr_ip_hdr_t *)(packet+SIZE_ETH);
     struct sr_if *tgt_iface = sr_get_interface_from_ip(sr,ip_header->ip_dst);
-    struct sr_rt * rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
+    struct sr_rt * rt = NULL;
     struct sr_nat_mapping *map = NULL;
+    /*struct sr_if *int_if = sr_get_interface(sr,"eth1");*/
+    struct sr_if *ext_if = sr_get_interface(sr,"eth2");
 
     uint16_t incm_cksum = ip_header->ip_sum;
     ip_header->ip_sum = 0;
@@ -180,6 +182,7 @@ void natHandleIPPacket(struct sr_instance* sr,
     if (calc_cksum != incm_cksum){
         fprintf(stderr,"Bad checksum\n");
     } else if (strcmp(rec_iface->name, "eth1") == 0){ /*INTERNAL*/
+        rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
         if (tgt_iface != NULL || rt == NULL){
             handleIPPacket(sr, packet, len, rec_iface);
         } else if (ip_header->ip_ttl <= 1){
@@ -189,17 +192,34 @@ void natHandleIPPacket(struct sr_instance* sr,
             fprintf(stderr,"FWD TCP from int\n");
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
             fprintf(stderr,"FWD ICMP from int\n");
-            /*sr_icmp_hdr_t * icmp_header = (sr_icmp_hdr_t*)(packet+SIZE_ETH+SIZE_IP);*/
-            map = sr_nat_lookup_internal(&(sr->nat),
-                                         ip_header->ip_src,
-                                         ip_header->ip_id,
-                                         nat_mapping_icmp);
-            if (map == NULL){
-                map = sr_nat_insert_mapping(&(sr->nat),
-                                         ip_header->ip_src,
-                                         ip_header->ip_id,
-                                         nat_mapping_icmp);
-                map->ip_ext = ip_header->ip_dst;
+            sr_icmp_t8_hdr_t * icmp_header = (sr_icmp_t8_hdr_t*)(packet+SIZE_ETH+SIZE_IP);
+            incm_cksum = icmp_header->icmp_sum;
+            icmp_header->icmp_sum = 0;
+            calc_cksum = cksum((uint8_t*)icmp_header,len-SIZE_ETH-SIZE_IP);
+            icmp_header->icmp_sum = incm_cksum;
+            if (incm_cksum != calc_cksum){
+                fprintf(stderr,"Bad cksum %d != %d\n", incm_cksum, calc_cksum);
+            }
+            else if (icmp_header->icmp_code == 8){
+                map = sr_nat_lookup_internal(&(sr->nat),
+                                            ip_header->ip_src,
+                                            icmp_header->icmp_id,
+                                            nat_mapping_icmp);
+                if (map == NULL){
+                    map = sr_nat_insert_mapping(&(sr->nat),
+                                            ip_header->ip_src,
+                                            icmp_header->icmp_id,
+                                            nat_mapping_icmp);
+                    map->ip_ext = ip_header->ip_dst;
+                }
+                icmp_header->icmp_id = map->aux_ext;
+                icmp_header->icmp_sum = 0;
+                icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,len-SIZE_ETH-SIZE_IP);
+                
+                ip_header->ip_src = ext_if->ip;
+                ip_header->ip_sum = 0;
+                ip_header->ip_sum = cksum((uint8_t*)ip_header,20);
+                sendIPPacket(sr, packet, len, rt);
             }
         }
     } else if (strcmp(rec_iface->name, "eth2") == 0){ /*EXTERNAL*/
@@ -212,7 +232,30 @@ void natHandleIPPacket(struct sr_instance* sr,
             fprintf(stderr,"FWD TCP from ext\n");
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
             fprintf(stderr,"FWD ICMP from ext\n");
-            /*sr_icmp_hdr_t * icmp_header = (sr_icmp_hdr_t*)(packet+SIZE_ETH+SIZE_IP);*/
+            sr_icmp_t8_hdr_t * icmp_header = (sr_icmp_t8_hdr_t*)(packet+SIZE_ETH+SIZE_IP);
+            incm_cksum = icmp_header->icmp_sum;
+            icmp_header->icmp_sum = 0;
+            calc_cksum = cksum((uint8_t*)icmp_header,len-SIZE_ETH-SIZE_IP);
+            icmp_header->icmp_sum = incm_cksum;
+            if (incm_cksum != calc_cksum){
+                fprintf(stderr,"Bad cksum %d != %d\n", incm_cksum, calc_cksum);
+            }
+            else if (icmp_header->icmp_code == 0){
+                map = sr_nat_lookup_external(&(sr->nat),
+                                             icmp_header->icmp_id,
+                                             nat_mapping_icmp);
+                rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
+                if (rt != NULL){
+                    icmp_header->icmp_id = map->aux_int;
+                    icmp_header->icmp_sum = 0;
+                    icmp_header->icmp_sum = cksum((uint8_t*)icmp_header,len-SIZE_ETH-SIZE_IP);
+                    
+                    ip_header->ip_dst = map->ip_int;
+                    ip_header->ip_sum = 0;
+                    ip_header->ip_sum = cksum((uint8_t*)ip_header,20);
+                    sendIPPacket(sr, packet, len, rt);
+                }
+            }
         } 
     }
 }/* end natHandleIPPacket */
