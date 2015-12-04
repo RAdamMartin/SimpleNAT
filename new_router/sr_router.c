@@ -266,8 +266,8 @@ void sr_handlepacket(struct sr_instance* sr,
             if (sr->mode == 0){
                 handleIPPacket(sr, ether_packet, len, iface);
             } else if (sr->mode == 1){
-                handleIPPacket(sr, ether_packet, len, iface);
-                /*natHandleIPPacket(sr, ether_packet, len, iface);*/
+                /*handleIPPacket(sr, ether_packet, len, iface);*/
+                natHandleIPPacket(sr, ether_packet, len, iface);
             }
         }else{
             fprintf(stderr,"Unsupported Protocol!\n");
