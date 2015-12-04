@@ -71,6 +71,9 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
         }
         free(maps);
       }/*TODO IP Timeouts*/
+      
+      prev = maps;
+      maps = maps->next;
     }
     
 
