@@ -267,7 +267,10 @@ void natHandleIPPacket(struct sr_instance* sr,
                     tcp_header->tcp_src = htons(map->aux_int);
                     tcp_header->tcp_sum = sr_tcp_cksum(packet+SIZE_ETH, len-SIZE_ETH);
                     sr_free_mapping(map);
-                    sendIPPacket(sr, packet, len, rt);
+                    rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
+                    if (rt != NULL){
+                        sendIPPacket(sr, packet, len, rt);
+                    }
                 }
             }
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
