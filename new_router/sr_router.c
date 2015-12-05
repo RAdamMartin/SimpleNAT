@@ -196,6 +196,7 @@ void natHandleIPPacket(struct sr_instance* sr,
             if (calc_cksum != tcp_header->tcp_sum){
                 fprintf(stderr,"\t TCP bad checksum %u\n", htons(calc_cksum));
             } else {
+                fprintf(stderr,"\t fwding\n");
                 map = sr_nat_insert_mapping(&(sr->nat),
                                         ip_header->ip_src,
                                         tcp_header->tcp_src,
