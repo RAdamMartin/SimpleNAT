@@ -21,7 +21,6 @@ uint16_t cksum (const void *_data, int len) {
 
 uint16_t sr_tcp_cksum(void * packet, unsigned int len){
    int new_len = len-SIZE_IP+SIZE_PTCP+(len-SIZE_IP+SIZE_PTCP)%2;
-   fprintf(stderr, "DOING TCP CKSUM ON %u-> %u bytes\n",(unsigned int)(len-SIZE_IP+SIZE_PTCP),new_len);
    sr_ip_hdr_t *ip_header = (sr_ip_hdr_t*)packet;
    void * buf = calloc(new_len,1);
    sr_tcp_pseudo_hdr_t * pseudo = (sr_tcp_pseudo_hdr_t*)buf;
@@ -31,7 +30,7 @@ uint16_t sr_tcp_cksum(void * packet, unsigned int len){
    pseudo->ip_dst = ip_header->ip_dst;
    pseudo->ip_p = ip_header->ip_p;
    pseudo->reserved = 0;
-   pseudo->len = htons(len-SIZE_IP);
+   pseudo->len = len-SIZE_IP;
    
    memcpy(buf+SIZE_PTCP,packet+SIZE_IP,len-SIZE_IP);
    tcp_hdr->tcp_sum = 0;
