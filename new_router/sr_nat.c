@@ -42,6 +42,7 @@ int sr_nat_init(struct sr_nat *nat,
 
 struct sr_nat_mapping *copy_map(struct sr_nat_mapping * map){
    struct sr_nat_mapping *copy = malloc(sizeof(struct sr_nat_mapping));
+   memcpy(copy,map,sizeof(struct sr_nat_mapping));
    if (map->conns != NULL){
       struct sr_nat_connection *new_con = malloc(sizeof(struct sr_nat_connection));
       memcpy(new_con,map->conns,sizeof(struct sr_nat_connection));
