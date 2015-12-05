@@ -191,17 +191,18 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   }
   
   nat->mappings = mapping;
-  struct sr_nat_mapping *ret_map = malloc(sizeof(struct sr_nat_mapping));
-  memcpy(ret_map,mapping,sizeof(struct sr_nat_mapping));
+  struct sr_nat_mapping *ret_map = copy_map(mapping);
 
   pthread_mutex_unlock(&(nat->lock));
   return ret_map;
 }
 
 void * sr_free_mapping(struct sr_nat_mapping * map){
-   struct sr_nat_connection *con = map->conns;
-   for (con = map->conns; con != NULL; con = con->next) {
-      free(con);
+   if (map->conns != NULL){
+      struct sr_nat_connection *con = map->conns;
+      for (con = map->conns; con != NULL; con = con->next) {
+          free(con);
+      }
    }
    
    free(map);
