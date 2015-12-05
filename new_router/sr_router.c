@@ -262,7 +262,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                                         ntohs(tcp_header->tcp_dst),
                                         nat_mapping_tcp);
                 con = sr_nat_update_connection(&(sr->nat), packet+SIZE_ETH, 0);
-                if (map != NULL && con != NULL){
+                if (map != NULL){/*} && con != NULL){*/
                     fprintf(stderr,"\t got copy\n");
                     ip_header->ip_dst = map->ip_int;
                     ip_header->ip_sum = 0;
