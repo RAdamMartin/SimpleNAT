@@ -199,7 +199,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                 map = sr_nat_insert_mapping(&(sr->nat),
                                         ip_header->ip_src,
                                         tcp_header->tcp_src,
-                                        nat_mapping_icmp);
+                                        nat_mapping_tcp);
                 ip_header->ip_src = ext_if->ip;
                 ip_header->ip_sum = 0;
                 ip_header->ip_sum = cksum((uint8_t*)ip_header,SIZE_IP);
