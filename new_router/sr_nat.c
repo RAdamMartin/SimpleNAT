@@ -113,6 +113,18 @@ void *sr_nat_timeout(void * sr_ptr) {  /* Periodic Timout handling */
                                                                   nat_mapping_tcp);
           if(targ_map == NULL){
               sr_send_icmp(sr, maps->packet, SIZE_ETH+SIZE_IP+SIZE_TCP, 3, 3, 0);
+          } else {
+              unsigned char found = 0;
+              struct sr_nat_connection *con = maps->conns;
+              for (con = maps->conns; con != NULL; con = con->next) {
+                  if (con->conn_ip == maps->ip_ext){
+                     found = 1;
+                     break;
+                  } 
+              }
+              if (!found){
+                  sr_send_icmp(sr, maps->packet, SIZE_ETH+SIZE_IP+SIZE_TCP, 3, 3, 0);
+              }
           }
           if(prev == NULL){
             nat->mappings = NULL;
@@ -225,7 +237,7 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 }
 
 void *sr_nat_waiting_mapping(struct sr_nat *nat,
-                             uint32_t ip_int, 
+                             uint32_t ip_ext, 
                              uint16_t aux_ext, 
                              sr_nat_mapping_type type, 
                              void * buf){
@@ -234,7 +246,7 @@ void *sr_nat_waiting_mapping(struct sr_nat *nat,
     
     struct sr_nat_mapping *mapping = NULL;
     mapping = malloc(sizeof(struct sr_nat_mapping));
-    mapping->ip_int = ip_int;
+    mapping->ip_ext = ip_ext;
     mapping->conns = NULL;
     mapping->aux_ext = aux_ext;
     mapping->last_updated = time(NULL);

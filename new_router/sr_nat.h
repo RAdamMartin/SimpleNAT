@@ -36,7 +36,7 @@ struct sr_nat_connection {
 struct sr_nat_mapping {
   sr_nat_mapping_type type;
   uint32_t ip_int; /* internal ip addr */
-  /*uint32_t ip_ext;*/ /* external ip addr */
+  uint32_t ip_ext; /* external ip addr */
   uint16_t aux_int; /* internal port or icmp id */
   uint16_t aux_ext; /* external port or icmp id */
   time_t last_updated; /* use to timeout mappings */
