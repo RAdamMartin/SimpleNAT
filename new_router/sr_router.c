@@ -201,6 +201,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                                         ip_header->ip_src,
                                         tcp_header->tcp_src,
                                         nat_mapping_icmp);
+                                        fprintf(stderr,"\t got copy");
                 ip_header->ip_src = ext_if->ip;
                 ip_header->ip_sum = 0;
                 ip_header->ip_sum = cksum((uint8_t*)ip_header,SIZE_IP);
