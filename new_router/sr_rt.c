@@ -178,53 +178,20 @@ void sr_print_routing_entry(struct sr_rt* entry)
 } /* -- sr_print_routing_entry -- */
 
 struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
-{/*ENDIANESS*/
-  /*uint32_t best_match = 0;
-  struct sr_rt* rt = NULL;
-  struct sr_rt* rt_walker = NULL;
-
-  if(sr->routing_table == 0)
-  {
-    fprintf(stderr," *warning* Routing table empty \n");
-    return NULL;
-  }
-
-  rt_walker = sr->routing_table;
-  fprintf(stderr,"Finding LPM for %d = ", ip);
-  print_addr_ip_int(ip);
-  while(rt_walker){
-    uint32_t rt_ip = (uint32_t)(rt_walker->dest.s_addr);
-    uint32_t rt_msk = (uint32_t)(rt_walker->mask.s_addr);
-    uint32_t rt_entry = (rt_ip&rt_msk);
-    uint32_t ip_with_mask = (ip&rt_msk);
-    if((ip_with_mask^rt_entry) == 0){
-        if (rt_msk+1 == 0){
-            fprintf(stderr,"\t Found perfect match LPM with %d = ", rt_ip);
-            print_addr_ip_int(rt_ip);
-            return rt_walker;
-        } else if (rt_msk > best_match){
-            fprintf(stderr,"\t Found partial match LPM with %d = ", rt_ip);
-            print_addr_ip_int(rt_ip);
-            fprintf(stderr,"\t \t Mask of %d = ", rt_msk);
-            print_addr_ip_int(rt_msk);
-            best_match = rt_msk;
-            rt = rt_walker;
-        }
-    }
-    rt_walker = rt_walker->next;
-  }
-  return rt;*/
+{
     struct sr_rt* rt = sr->routing_table;
-	struct sr_rt *closestMatch = NULL; 
-    
+	struct sr_rt *match = NULL; 
+    uint32_t msk = 0;
+    fprintf(stderr,"Finding LPM for %u \n", ip);
 	while (rt != NULL) {
-		uint32_t mask = rt->mask.s_addr;
-		if ((ip & mask) == (rt->dest.s_addr & mask)) {
-			if (closestMatch == NULL || (mask > closestMatch->mask.s_addr)) {
-				closestMatch = rt;
+		msk = rt->mask.s_addr;
+		if ((ip & msk) == (rt->dest.s_addr & msk)) {
+			if (match == NULL || (msk > match->mask.s_addr)) {
+                fprintf(stderr,"Found match %u \n", rt->gw.s_addr);
+				match = rt;
 			}
 		}
 		rt = rt->next;
 	}
-	return closestMatch;
+	return match;
 } /* -- sr_find_routing_entry -- */

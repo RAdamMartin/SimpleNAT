@@ -284,9 +284,9 @@ void natHandleIPPacket(struct sr_instance* sr,
                                                      nat_mapping_waiting,
                                                      packet);
                     }
-                } else {
+                } /*else {
                     sr_send_icmp(sr, packet, len, 3, 3, 0);
-                }
+                }*/
             }
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
             fprintf(stderr,"FWD ICMP from ext\n");
