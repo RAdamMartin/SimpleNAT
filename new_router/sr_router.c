@@ -171,6 +171,7 @@ void natHandleIPPacket(struct sr_instance* sr,
     struct sr_if *tgt_iface = sr_get_interface_from_ip(sr,ip_header->ip_dst);
     struct sr_rt * rt = NULL;
     struct sr_nat_mapping *map = NULL;
+    struct sr_nat_connection *con = NULL;
     /*struct sr_if *int_if = sr_get_interface(sr,"eth1");*/
     struct sr_if *ext_if = sr_get_interface(sr,"eth2");
 
@@ -184,7 +185,8 @@ void natHandleIPPacket(struct sr_instance* sr,
     } else if (strcmp(rec_iface->name, "eth1") == 0){ /*INTERNAL*/
         rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
         if (tgt_iface != NULL || rt == NULL){
-            handleIPPacket(sr, packet, len, rec_iface);
+            /*(handleIPPacket(sr, packet, len, rec_iface);*/
+            sr_send_icmp(sr, packet, len, 3, 3, 0);
         } else if (ip_header->ip_ttl <= 1){
             fprintf(stderr,"Packet died\n");
             sr_send_icmp(sr, packet, len, 11, 0,0);
@@ -227,6 +229,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                                         icmp_header->icmp_id,
                                         nat_mapping_icmp);
                 /*map->ip_ext = ip_header->ip_dst;*/
+                con = sr_nat_update_connection(&(sr->nat), packet+SIZE_ETH, 1);
                 fprintf(stderr,"\t intfwd icmp ext id %d\n", map->aux_ext);
                 icmp_header->icmp_id = map->aux_ext;
                 icmp_header->icmp_sum = 0;
@@ -258,7 +261,8 @@ void natHandleIPPacket(struct sr_instance* sr,
                 map = sr_nat_lookup_external(&(sr->nat),
                                         ntohs(tcp_header->tcp_dst),
                                         nat_mapping_tcp);
-                if (map != NULL){
+                con = sr_nat_update_connection(&(sr->nat), packet+SIZE_ETH, 0);
+                if (map != NULL && con != NULL){
                     fprintf(stderr,"\t got copy\n");
                     ip_header->ip_dst = map->ip_int;
                     ip_header->ip_sum = 0;
@@ -271,6 +275,17 @@ void natHandleIPPacket(struct sr_instance* sr,
                     if (rt != NULL){
                         sendIPPacket(sr, packet, len, rt);
                     }
+                } else if (tcp_header->syn) {
+                    rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
+                    if (rt != NULL){
+                        map = sr_nat_waiting_mapping(&(sr->nat),
+                                                     ip_header->ip_src,
+                                                     ntohs(tcp_header->tcp_dst),
+                                                     nat_mapping_waiting,
+                                                     packet);
+                    }
+                } else {
+                    sr_send_icmp(sr, packet, len, 3, 3, 0);
                 }
             }
         } else if(ip_header->ip_p==1 ) { /*ICMP*/
@@ -332,7 +347,7 @@ void sr_init(struct sr_instance* sr,
     sr->mode = mode;
     if (mode == 1){
         fprintf(stderr,"Nat mode enabled!\n");
-        sr_nat_init(&(sr->nat), icmp_timeout, tcp_est_timeout, tcp_trans_timeout);
+        sr_nat_init(sr, &(sr->nat), icmp_timeout, tcp_est_timeout, tcp_trans_timeout);
     }
 } /* -- sr_init -- */
 

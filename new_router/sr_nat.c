@@ -1,12 +1,16 @@
 #include <stdio.h>
 #include <signal.h>
 #include <assert.h>
-#include "sr_nat.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 
-int sr_nat_init(struct sr_nat *nat,
+#include "sr_nat.h"
+#include "sr_protocol.h"
+#include "sr_router.h"
+
+int sr_nat_init(void *sr,
+                struct sr_nat *nat,
                 unsigned int icmp_timeout,
                 unsigned int tcp_est_timeout,
                 unsigned int tcp_trans_timeout) {
@@ -24,7 +28,7 @@ int sr_nat_init(struct sr_nat *nat,
   pthread_attr_setdetachstate(&(nat->thread_attr), PTHREAD_CREATE_JOINABLE);
   pthread_attr_setscope(&(nat->thread_attr), PTHREAD_SCOPE_SYSTEM);
   pthread_attr_setscope(&(nat->thread_attr), PTHREAD_SCOPE_SYSTEM);
-  pthread_create(&(nat->thread), &(nat->thread_attr), sr_nat_timeout, nat);
+  pthread_create(&(nat->thread), &(nat->thread_attr), sr_nat_timeout, sr);
 
   /* CAREFUL MODIFYING CODE ABOVE THIS LINE! */
 
@@ -51,7 +55,6 @@ struct sr_nat_mapping *copy_map(struct sr_nat_mapping * map){
       struct sr_nat_connection *prev_con = new_con;    
       struct sr_nat_connection *con;
       for (con = map->conns; con != NULL; con = con->next) {
-        fprintf(stderr, "BAD MEWS\n");
           new_con = malloc(sizeof(struct sr_nat_connection));
           memcpy(new_con,con,sizeof(struct sr_nat_connection));
           prev_con->next = new_con;
@@ -81,8 +84,9 @@ int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
 
 }
 
-void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
-  struct sr_nat *nat = (struct sr_nat *)nat_ptr;
+void *sr_nat_timeout(void * sr_ptr) {  /* Periodic Timout handling */
+  struct sr_instance *sr = (struct sr_instance *)sr_ptr;
+  struct sr_nat *nat = &(sr->nat);
   while (1) {
     sleep(1.0);
     pthread_mutex_lock(&(nat->lock));
@@ -95,12 +99,25 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
       double diff = difftime(curtime, maps->last_updated);
         
       if (maps->type == nat_mapping_icmp && diff > nat->icmp_to){
-        if(prev == NULL){
-          nat->mappings = NULL;
-        } else {
-          prev->next = maps->next;
-        }
-        sr_free_mapping(maps);
+          if(prev == NULL){
+            nat->mappings = NULL;
+          } else {
+            prev->next = maps->next;
+          }
+          sr_free_mapping(maps);
+      } else if (maps->type == nat_mapping_waiting && diff >= 6.0){
+          struct sr_nat_mapping *targ_map = sr_nat_lookup_external(nat,
+                                                                  maps->aux_ext,
+                                                                  nat_mapping_tcp);
+          if(targ_map == NULL){
+              sr_send_icmp(sr, maps->packet, SIZE_ETH+SIZE_IP+SIZE_TCP, 3, 3, 0);
+          }
+          if(prev == NULL){
+            nat->mappings = NULL;
+          } else {
+            prev->next = maps->next;
+          }
+          sr_free_mapping(maps);
       }/*TODO IP Timeouts*/
       
       prev = maps;
@@ -181,6 +198,7 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   mapping = malloc(sizeof(struct sr_nat_mapping));
   mapping->ip_int = ip_int;
   mapping->conns = NULL;
+  mapping->packet = NULL;
   mapping->aux_int = aux_int;
   mapping->last_updated = time(NULL);
   mapping->type = type;
@@ -204,6 +222,99 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   return ret_map;
 }
 
+void *sr_nat_waiting_mapping(struct sr_nat *nat,
+                             uint32_t ip_int, 
+                             uint16_t aux_ext, 
+                             sr_nat_mapping_type type, 
+                             void * buf){
+
+    pthread_mutex_lock(&(nat->lock));
+    
+    struct sr_nat_mapping *mapping = NULL;
+    mapping = malloc(sizeof(struct sr_nat_mapping));
+    mapping->ip_int = ip_int;
+    mapping->conns = NULL;
+    mapping->aux_ext = aux_ext;
+    mapping->last_updated = time(NULL);
+    mapping->type = type;
+    mapping->packet = malloc(SIZE_ETH+SIZE_IP+SIZE_TCP);
+    memcpy(mapping->packet,buf, SIZE_ETH+SIZE_IP+SIZE_TCP);
+    mapping->next = nat->mappings;
+    
+    nat->mappings = mapping;
+    pthread_mutex_unlock(&(nat->lock));
+    return NULL;
+}
+
+struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
+                                                   void * buf,
+                                                   unsigned char internal){ 
+    pthread_mutex_lock(&(nat->lock));
+    sr_ip_hdr_t *ip_header = (sr_ip_hdr_t *)buf;  
+    sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(buf+SIZE_IP);
+    /* handle lookup here, malloc and assign to copy. */
+    struct sr_nat_connection *con = NULL;
+    struct sr_nat_connection *copy = NULL;
+    struct sr_nat_mapping *maps = nat->mappings;
+    while(maps != NULL){
+        if(internal && 
+           maps->ip_int == ip_header->ip_src && 
+           maps->aux_int == tcp_header->tcp_src &&
+           maps->type == nat_mapping_tcp){
+            con = maps->conns;
+            maps = NULL;
+        } else if(!internal &&  
+                  maps->aux_ext == tcp_header->tcp_dst &&
+                  maps->type == nat_mapping_tcp){
+            con = maps->conns;
+            maps = NULL;
+        }
+        maps = maps->next;
+    }
+  
+    while (con != NULL){
+       if(internal && con->conn_ip == ip_header->ip_dst){
+          copy = con;
+          con = NULL;
+       } else if(!internal && con->conn_ip == ip_header->ip_src){
+          copy = con;
+          con = NULL;
+       }
+    }
+    
+    if (maps!= NULL && copy == NULL && internal && tcp_header->syn){
+       copy = malloc(sizeof(struct sr_nat_connection*));
+       copy->conn_ip = (internal ? ip_header->ip_dst : ip_header->ip_src);
+       copy->state = SYN_SENT;
+       con = malloc(sizeof(struct sr_nat_connection));
+       memcpy(con,copy,sizeof(struct sr_nat_connection));
+       con->next = maps->conns;
+       maps->conns = con;
+    } else if (copy != NULL){
+      /*
+       switch (copy->state)
+       {
+          case SYN_SENT :
+             if(tcp_header->syn && tcp_header->ack && !internal)
+                copy->state = SYN_REC;
+          break;
+          case SYN_REC :
+             if(tcp_header->syn && tcp_header->ack && internal)
+                copy->state = ESTAB;
+          break;
+          case ESTAB :
+             if(tcp_header->syn && tcp_header->ack && internal)
+                copy->state = ESTAB;
+       }*/
+       con = copy;
+       copy = malloc(sizeof(struct sr_nat_connection));
+       memcpy(copy,con,sizeof(struct sr_nat_connection));
+    }
+    
+    pthread_mutex_unlock(&(nat->lock));
+    return copy;
+}
+
 void * sr_free_mapping(struct sr_nat_mapping * map){
    if (map->conns != NULL){
       struct sr_nat_connection *con = map->conns;
@@ -211,7 +322,9 @@ void * sr_free_mapping(struct sr_nat_mapping * map){
           free(con);
       }
    }
-   
+   if (map->packet != NULL){
+     free(map->packet);
+   }
    free(map);
    return NULL;
 }
