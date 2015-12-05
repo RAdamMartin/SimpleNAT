@@ -261,6 +261,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
            maps->ip_int == ip_header->ip_src && 
            maps->aux_int == ntohs(tcp_header->tcp_src) &&
            maps->type == nat_mapping_tcp){
+             fprintf(stderr,"\t got map\n");
             con = maps->conns;
             break;
         } else if(!internal &&  
@@ -275,6 +276,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
   
     while (con != NULL){
        if(internal && con->conn_ip == ip_header->ip_dst){
+         fprintf(stderr,"\t got con\n");
           copy = con;
           break;
        } else if(!internal && con->conn_ip == ip_header->ip_src){
@@ -286,6 +288,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
     }
     
     if (maps!= NULL && copy == NULL && internal && tcp_header->syn){
+      fprintf(stderr,"\t creating con\n");
        copy = malloc(sizeof(struct sr_nat_connection*));
        copy->conn_ip = (internal ? ip_header->ip_dst : ip_header->ip_src);
        copy->state = SYN_SENT;
