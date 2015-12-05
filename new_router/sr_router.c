@@ -202,6 +202,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                                         ip_header->ip_src,
                                         tcp_header->tcp_src,
                                         nat_mapping_tcp);
+                con = sr_nat_update_connection(&(sr->nat), packet+SIZE_ETH, 1);
                 ip_header->ip_src = ext_if->ip;
                 ip_header->ip_sum = 0;
                 ip_header->ip_sum = cksum((uint8_t*)ip_header,SIZE_IP);
@@ -229,7 +230,6 @@ void natHandleIPPacket(struct sr_instance* sr,
                                         icmp_header->icmp_id,
                                         nat_mapping_icmp);
                 /*map->ip_ext = ip_header->ip_dst;*/
-                con = sr_nat_update_connection(&(sr->nat), packet+SIZE_ETH, 1);
                 fprintf(stderr,"\t intfwd icmp ext id %d\n", map->aux_ext);
                 icmp_header->icmp_id = map->aux_ext;
                 icmp_header->icmp_sum = 0;
@@ -261,7 +261,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                 map = sr_nat_lookup_external(&(sr->nat),
                                         ntohs(tcp_header->tcp_dst),
                                         nat_mapping_tcp);
-                con = sr_nat_update_connection(&(sr->nat), packet+SIZE_ETH, 1);
+                con = sr_nat_update_connection(&(sr->nat), packet+SIZE_ETH, 0);
                 if (map != NULL && con != NULL){
                     fprintf(stderr,"\t got copy\n");
                     ip_header->ip_dst = map->ip_int;

@@ -266,6 +266,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
         } else if(!internal &&  
                   maps->aux_ext == ntohs(tcp_header->tcp_dst) &&
                   maps->type == nat_mapping_tcp){
+            fprintf(stderr,"\t got map\n");
             con = maps->conns;
             break;
         }
@@ -277,6 +278,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
           copy = con;
           break;
        } else if(!internal && con->conn_ip == ip_header->ip_src){
+         fprintf(stderr,"\t got con\n");
           copy = con;
           break;
        }
