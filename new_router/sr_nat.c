@@ -122,7 +122,9 @@ struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
   /* handle lookup here, malloc and assign to copy. */
   struct sr_nat_mapping *copy = NULL;
   struct sr_nat_mapping *maps = nat->mappings;
+  fprintf(stderr,"Lookup External %u\n",aux_ext);
   while(maps != NULL){
+    fprintf(stderr,"\t comparing to: %u\n", aux_ext);
     if (maps->aux_ext == aux_ext && type == maps->type){
       maps->last_updated = time(NULL);
       copy = copy_map(maps);

@@ -204,7 +204,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                 ip_header->ip_sum = 0;
                 ip_header->ip_sum = cksum((uint8_t*)ip_header,SIZE_IP);
                 
-                tcp_header->tcp_src = htonl(map->aux_ext);
+                tcp_header->tcp_src = htons(map->aux_ext);
                 tcp_header->tcp_sum = sr_tcp_cksum(packet+SIZE_ETH, len-SIZE_ETH);
                 sr_free_mapping(map);
                 sendIPPacket(sr, packet, len, rt);
@@ -256,7 +256,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                 sr_send_icmp(sr, packet, len, 3, 3, 0);
             } else {
                 map = sr_nat_lookup_external(&(sr->nat),
-                                        ntohl(tcp_header->tcp_dst),
+                                        ntohs(tcp_header->tcp_dst),
                                         nat_mapping_tcp);
                 if (map != NULL){
                     fprintf(stderr,"\t got copy\n");
@@ -264,7 +264,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                     ip_header->ip_sum = 0;
                     ip_header->ip_sum = cksum((uint8_t*)ip_header,SIZE_IP);
                     
-                    tcp_header->tcp_src = htonl(map->aux_int);
+                    tcp_header->tcp_src = htons(map->aux_int);
                     tcp_header->tcp_sum = sr_tcp_cksum(packet+SIZE_ETH, len-SIZE_ETH);
                     sr_free_mapping(map);
                     sendIPPacket(sr, packet, len, rt);
