@@ -125,13 +125,15 @@ struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
   while(maps != NULL){
     if (maps->aux_ext == aux_ext && type == maps->type){
       maps->last_updated = time(NULL);
-      return copy_map(maps);
+      copy = copy_map(maps);
+      pthread_mutex_unlock(&(nat->lock));
+      return copy;
     }
     maps = maps->next;
   }
 
   pthread_mutex_unlock(&(nat->lock));
-  return copy;
+  return NULL;
 }
 
 /* Get the mapping associated with given internal (ip, port) pair.
@@ -147,13 +149,15 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
   while(maps != NULL){
     if (maps->ip_int == ip_int && maps->aux_int == aux_int && type == maps->type){
       maps->last_updated = time(NULL);
-      return copy_map(maps);
+      copy = copy_map(maps);
+      pthread_mutex_unlock(&(nat->lock));
+      return copy;
     }
     maps = maps->next;
   }
 
   pthread_mutex_unlock(&(nat->lock));
-  return copy;
+  return NULL;
 }
 
 /* Insert a new mapping into the nat's mapping table.
