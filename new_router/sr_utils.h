@@ -29,6 +29,7 @@
 #define SR_UTILS_H
 
 uint16_t cksum(const void *_data, int len);
+uint16_t sr_tcp_cksum(void * packet, unsigned int len);
 
 uint16_t ethertype(uint8_t *buf);
 uint8_t ip_protocol(uint8_t *buf);
@@ -40,7 +41,7 @@ void print_addr_ip_int(uint32_t ip);
 void print_hdr_eth(uint8_t *buf);
 void print_hdr_ip(uint8_t *buf);
 void print_hdr_icmp(uint8_t *buf);
-void print_hdr_icp(uint8_t *buf);
+void print_hdr_tcp(uint8_t *buf);
 void print_hdr_arp(uint8_t *buf);
 
 /* prints all headers, starting from eth */

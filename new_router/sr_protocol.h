@@ -78,7 +78,8 @@
 #define SIZE_IP sizeof(sr_ip_hdr_t)
 #define SIZE_ARP sizeof(sr_arp_hdr_t)
 #define SIZE_ICMP sizeof(sr_icmp_t3_hdr_t)
-#define SIZE_TCMP sizeof(sr_tcp_hdr_t)
+#define SIZE_TCP sizeof(sr_tcp_hdr_t)
+#define SIZE_PTCP sizeof(sr_tcp_pseudo_hdr_t)
 
 /* Structure of a ICMP header
  */
@@ -156,6 +157,18 @@ struct sr_tcp_hdr {
   uint16_t tcp_ptr;
 } __attribute__ ((packed)) ;
 typedef struct sr_tcp_hdr sr_tcp_hdr_t;
+
+
+/* Structure of a TCP-Pseudo header
+ */
+struct sr_tcp_pseudo_hdr {
+  uint32_t ip_src;
+  uint32_t ip_dst;
+  uint8_t reserved;
+  uint8_t ip_p;
+  uint16_t len;
+} __attribute__ ((packed)) ;
+typedef struct sr_tcp_pseudo_hdr sr_tcp_pseudo_hdr_t;
 
 
 /*

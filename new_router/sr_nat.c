@@ -70,7 +70,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
   while (1) {
     sleep(1.0);
     pthread_mutex_lock(&(nat->lock));
-if(0){
+
     time_t curtime = time(NULL);
     /* handle periodic tasks here */
     struct sr_nat_mapping *maps = nat->mappings;
@@ -90,7 +90,7 @@ if(0){
       prev = maps;
       maps = maps->next;
     }
-}
+
     pthread_mutex_unlock(&(nat->lock));
   }
   return NULL;
@@ -110,6 +110,7 @@ struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
     if (maps->aux_ext == aux_ext && type == maps->type){
       copy = malloc(sizeof(struct sr_nat_mapping));
       memcpy(copy,maps,sizeof(struct sr_nat_mapping));
+      maps->last_updated = time(NULL);
       return copy;
     }
     maps = maps->next;
@@ -133,6 +134,7 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
     if (maps->ip_int == ip_int && maps->aux_int == aux_int && type == maps->type){
       copy = malloc(sizeof(struct sr_nat_mapping));
       memcpy(copy,maps,sizeof(struct sr_nat_mapping));
+      maps->last_updated = time(NULL);
       return copy;
     }
     maps = maps->next;
@@ -152,6 +154,12 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 
   /* handle insert here, create a mapping, and then return a copy of it */
   struct sr_nat_mapping *mapping = NULL;
+  mapping = sr_nat_lookup_internal(nat, ip_int, aux_int, type);
+  
+  if (mapping != NULL){
+    return mapping;
+  }
+  
   mapping = malloc(sizeof(struct sr_nat_mapping));
   mapping->ip_int = ip_int;
   /*mapping->ip_ext = ??*/

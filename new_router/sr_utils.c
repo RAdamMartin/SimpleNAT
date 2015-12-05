@@ -19,6 +19,22 @@ uint16_t cksum (const void *_data, int len) {
   return sum ? sum : 0xffff;
 }
 
+uint16_t sr_tcp_cksum(void * packet, unsigned int len){
+   sr_ip_hdr_t *ip_header = (sr_ip_hdr_t*)packet;
+   void * buf = malloc(len-SIZE_IP+SIZE_PTCP);
+   sr_tcp_pseudo_hdr_t * pseudo = (sr_tcp_pseudo_hdr_t*)buf;
+   
+   pseudo->ip_src = ip_header->ip_src;
+   pseudo->ip_dst = ip_header->ip_dst;
+   pseudo->ip_p = ip_header->ip_p;
+   pseudo->reserved = 0;
+   pseudo->len = htons(len-SIZE_IP);
+   
+   memcpy(buf+SIZE_PTCP,packet,len-SIZE_IP);
+   uint16_t ret = cksum(buf,len-SIZE_IP+SIZE_PTCP);
+   free(buf);
+   return ret;
+}
 
 uint16_t ethertype(uint8_t *buf) {
   sr_ethernet_hdr_t *ehdr = (sr_ethernet_hdr_t *)buf;
@@ -119,7 +135,7 @@ void print_hdr_icmp(uint8_t *buf) {
 }
 
 /* Prints out TCP header fields */
-void print_hdr_icp(uint8_t *buf) {
+void print_hdr_tcp(uint8_t *buf) {
   sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t *)(buf);
   fprintf(stderr, "TCP header:\n");
   fprintf(stderr, "\tsrc:\t%u\n",ntohs(tcp_header->tcp_src));
@@ -206,4 +222,3 @@ void print_hdrs(uint8_t *buf, uint32_t length) {
     fprintf(stderr, "Unrecognized Ethernet Type: %d\n", ethtype);
   }
 }
-

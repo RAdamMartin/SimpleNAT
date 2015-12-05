@@ -14,14 +14,27 @@ typedef enum {
 
 struct sr_nat_connection {
   /* add TCP connection state data members here */
-
+  uint8_t state;
+#define LISTEN 0
+#define SYN_SENT 1
+#define SYN_REC 2
+#define ESTAB 3
+#define FIN_W1 4
+#define FIN_W2 5
+#define CLOSE_W 6
+#define CLOSING 7
+#define LAST_ACK 8
+#define TIME_W 9
+#define CLOSED 10
+  uint8_t ext_flags;
+  uint8_t int_flags;
   struct sr_nat_connection *next;
 };
 
 struct sr_nat_mapping {
   sr_nat_mapping_type type;
   uint32_t ip_int; /* internal ip addr */
-  uint32_t ip_ext; /* external ip addr */
+  /*uint32_t ip_ext;*/ /* external ip addr */
   uint16_t aux_int; /* internal port or icmp id */
   uint16_t aux_ext; /* external port or icmp id */
   time_t last_updated; /* use to timeout mappings */
