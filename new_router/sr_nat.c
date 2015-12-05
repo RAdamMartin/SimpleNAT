@@ -48,19 +48,21 @@ struct sr_nat_mapping *copy_map(struct sr_nat_mapping * map){
    struct sr_nat_mapping *copy = malloc(sizeof(struct sr_nat_mapping));
    memcpy(copy,map,sizeof(struct sr_nat_mapping));
    if (map->conns != NULL){
-      struct sr_nat_connection *new_con = malloc(sizeof(struct sr_nat_connection));
+      /*struct sr_nat_connection *new_con = malloc(sizeof(struct sr_nat_connection));
       memcpy(new_con,map->conns,sizeof(struct sr_nat_connection));
       copy->conns = new_con;
       
       struct sr_nat_connection *prev_con = new_con;    
       struct sr_nat_connection *con;
-      for (con = map->conns; con != NULL; con = con->next) {
+      for (con = new_con->next; con != NULL; con = con->next) {
           new_con = malloc(sizeof(struct sr_nat_connection));
           memcpy(new_con,con,sizeof(struct sr_nat_connection));
           prev_con->next = new_con;
           prev_con = new_con;
-      }
+      }*/
+      copy->conns = NULL;
    }
+   copy->packet = NULL;
    
    return copy;
 }
