@@ -259,7 +259,7 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
     while(maps != NULL){
         if(internal && 
            maps->ip_int == ip_header->ip_src && 
-           maps->aux_int == ntohs(tcp_header->tcp_src) &&
+           maps->aux_int == tcp_header->tcp_src &&
            maps->type == nat_mapping_tcp){
              fprintf(stderr,"\t got map\n");
             con = maps->conns;
