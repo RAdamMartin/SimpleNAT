@@ -194,11 +194,6 @@ void natHandleIPPacket(struct sr_instance* sr,
             sr_tcp_hdr_t *tcp_header = (sr_tcp_hdr_t*)(packet+SIZE_ETH+SIZE_IP);
             calc_cksum = sr_tcp_cksum(packet+SIZE_ETH, len-SIZE_ETH);
             fprintf(stderr,"\t TCP calc checksum %u, or %u\n", calc_cksum, htons(calc_cksum));
-            incm_cksum=tcp_header->tcp_sum;
-            tcp_header->tcp_sum = 0;
-            calc_cksum = cksum(packet+SIZE_ETH+SIZE_IP, len-SIZE_ETH-SIZE_IP);
-            tcp_header->tcp_sum = incm_cksum;
-            fprintf(stderr,"\t TCP basicchecksum %u, or %u\n", calc_cksum, htons(calc_cksum));
             /*TODO check TCP sum*/
             map = sr_nat_insert_mapping(&(sr->nat),
                                     ip_header->ip_src,
