@@ -264,7 +264,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                     ip_header->ip_sum = 0;
                     ip_header->ip_sum = cksum((uint8_t*)ip_header,SIZE_IP);
                     
-                    tcp_header->tcp_src = htons(map->aux_int);
+                    tcp_header->tcp_src = map->aux_int;
                     tcp_header->tcp_sum = sr_tcp_cksum(packet+SIZE_ETH, len-SIZE_ETH);
                     sr_free_mapping(map);
                     rt = (struct sr_rt*)sr_find_routing_entry_int(sr, ip_header->ip_dst);
