@@ -179,9 +179,9 @@ void sr_print_routing_entry(struct sr_rt* entry)
 
 struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
 {/*ENDIANESS*/
-  uint32_t best_match = 0;
+  /*uint32_t best_match = 0;
   struct sr_rt* rt = NULL;
-  struct sr_rt* rt_walker = 0;
+  struct sr_rt* rt_walker = NULL;
 
   if(sr->routing_table == 0)
   {
@@ -213,5 +213,18 @@ struct sr_rt* sr_find_routing_entry_int(struct sr_instance* sr, uint32_t ip)
     }
     rt_walker = rt_walker->next;
   }
-  return rt;
+  return rt;*/
+    struct sr_rt* rt = sr->routing_table;
+	struct sr_rt *closestMatch = NULL; 
+    
+	while (rt != NULL) {
+		uint32_t mask = rt->mask.s_addr;
+		if ((ip & mask) == (rt->dest.s_addr & mask)) {
+			if (closestMatch == NULL || (mask > closestMatch->mask.s_addr)) {
+				closestMatch = rt;
+			}
+		}
+		rt = rt->next;
+	}
+	return closestMatch;
 } /* -- sr_find_routing_entry -- */
