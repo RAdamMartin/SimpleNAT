@@ -24,13 +24,13 @@ uint16_t sr_tcp_cksum(void * packet, unsigned int len){
    sr_ip_hdr_t *ip_header = (sr_ip_hdr_t*)packet;
    void * buf = calloc(new_len,1);
    sr_tcp_pseudo_hdr_t * pseudo = (sr_tcp_pseudo_hdr_t*)buf;
-   sr_tcp_hdr_t *tcp_hdr = (sr_tcp_hdr_t*)(buf+SIZE_IP);
+   sr_tcp_hdr_t *tcp_hdr = (sr_tcp_hdr_t*)(buf+SIZE_PTCP);
    
    pseudo->ip_src = ip_header->ip_src;
    pseudo->ip_dst = ip_header->ip_dst;
-   pseudo->ip_p = ip_header->ip_p;
    pseudo->reserved = 0;
-   pseudo->len = new_len;
+   pseudo->ip_p = ip_header->ip_p;
+   pseudo->len = htons(len-SIZE_IP);
    
    memcpy(buf+SIZE_PTCP,packet+SIZE_IP,len-SIZE_IP);
    tcp_hdr->tcp_sum = 0;
