@@ -1,4 +1,4 @@
-
+#include <stdio.h>
 #include <signal.h>
 #include <assert.h>
 #include "sr_nat.h"
@@ -50,6 +50,7 @@ struct sr_nat_mapping *copy_map(struct sr_nat_mapping * map){
       struct sr_nat_connection *prev_con = new_con;    
       struct sr_nat_connection *con;
       for (con = map->conns; con != NULL; con = con->next) {
+        fprintf(stderr, "BAD MEWS\n");
           new_con = malloc(sizeof(struct sr_nat_connection));
           memcpy(new_con,con,sizeof(struct sr_nat_connection));
           prev_con->next = new_con;
