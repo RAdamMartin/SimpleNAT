@@ -261,7 +261,7 @@ void natHandleIPPacket(struct sr_instance* sr,
                 map = sr_nat_lookup_external(&(sr->nat),
                                         ntohs(tcp_header->tcp_dst),
                                         nat_mapping_tcp);
-                con = sr_nat_update_connection(&(sr->nat), packet+SIZE_ETH, 0);
+                con = sr_nat_update_connection(&(sr->nat), packet+SIZE_ETH, 1);
                 if (map != NULL && con != NULL){
                     fprintf(stderr,"\t got copy\n");
                     ip_header->ip_dst = map->ip_int;
