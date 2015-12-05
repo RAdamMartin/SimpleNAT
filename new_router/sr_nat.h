@@ -20,16 +20,18 @@ struct sr_nat_connection {
 /*#define LISTEN 1*/
 #define SYN_SENT 2
 #define SYN_REC 3
-#define ESTAB 4
-#define FIN_W1 5
-#define FIN_W2 6
-#define CLOSE_W 7
+#define ESTAB1 4
+#define ESTAB2 5
+/*#define FIN_W1 6
+#define FIN_W2 7
+#define CLOSE_W 7*/
 #define CLOSING 8
-#define LAST_ACK 9
+/*#define LAST_ACK 9
 #define TIME_W 10
-#define CLOSED 0
+#define CLOSED 0*/
   /*uint8_t ext_flags;
   uint8_t int_flags;*/
+  time_t last_updated; /* use to timeout mappings */
   struct sr_nat_connection *next;
 };
 

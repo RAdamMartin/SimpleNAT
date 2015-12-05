@@ -132,7 +132,29 @@ void *sr_nat_timeout(void * sr_ptr) {  /* Periodic Timout handling */
             prev->next = maps->next;
           }
           sr_free_mapping(maps);
-      }/*TODO IP Timeouts*/
+      }else if (maps->type == nat_mapping_tcp){
+          if (diff >= nat->tcp_est_to){
+              sr_free_mapping(maps);
+          } else {
+              unsigned char keep = 0;
+              struct sr_nat_connection *con = maps->conns;
+              struct sr_nat_connection *prev_con = maps->conns;
+              for (con = maps->conns; con != NULL; con = con->next) {
+                  unsigned int timeout = ((con->state == ESTAB2) ? nat->tcp_est_to : nat->tcp_trans_to);
+                  if (difftime(curtime, con->last_updated) >= timeout){
+                     prev_con->next = con->next;
+                     free(con);
+                     con = prev_con;
+                  } else {
+                     keep = 1;
+                  }
+              }
+              
+              if (!keep){
+                  sr_free_mapping(maps);
+              }
+          }
+      }
       
       prev = maps;
       maps = maps->next;
@@ -157,7 +179,7 @@ struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
   while(maps != NULL){
     fprintf(stderr,"\t comparing to: %u\n", aux_ext);
     if (maps->aux_ext == aux_ext && type == maps->type){
-      maps->last_updated = time(NULL);
+      /*maps->last_updated = time(NULL);*/
       copy = copy_map(maps);
       pthread_mutex_unlock(&(nat->lock));
       return copy;
@@ -181,7 +203,7 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
   struct sr_nat_mapping *maps = nat->mappings;
   while(maps != NULL){
     if (maps->ip_int == ip_int && maps->aux_int == aux_int && type == maps->type){
-      maps->last_updated = time(NULL);
+      /*maps->last_updated = time(NULL);*/
       copy = copy_map(maps);
       pthread_mutex_unlock(&(nat->lock));
       return copy;
@@ -306,12 +328,15 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
        copy = malloc(sizeof(struct sr_nat_connection*));
        copy->conn_ip = (internal ? ip_header->ip_dst : ip_header->ip_src);
        copy->state = SYN_SENT;
+       maps->last_updated = time(NULL);
+       copy->last_updated = time(NULL);
        con = malloc(sizeof(struct sr_nat_connection));
        memcpy(con,copy,sizeof(struct sr_nat_connection));
        con->next = maps->conns;
        maps->conns = con;
-    } else if (copy != NULL){
-      /*
+    } else if (copy != NULL){  
+       maps->last_updated = time(NULL);
+       copy->last_updated = time(NULL);
        switch (copy->state)
        {
           case SYN_SENT :
@@ -320,12 +345,17 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
           break;
           case SYN_REC :
              if(tcp_header->syn && tcp_header->ack && internal)
-                copy->state = ESTAB;
+                copy->state = ESTAB1;
           break;
-          case ESTAB :
-             if(tcp_header->syn && tcp_header->ack && internal)
-                copy->state = ESTAB;
-       }*/
+          case ESTAB1 :
+             if(tcp_header->ack && !internal)
+                copy->state = ESTAB2;
+          break;
+          case ESTAB2 :
+             if(tcp_header->fin || tcp_header->rst)
+                copy->state = CLOSING;
+          break; 
+       }
        con = copy;
        copy = malloc(sizeof(struct sr_nat_connection));
        memcpy(copy,con,sizeof(struct sr_nat_connection));
