@@ -174,7 +174,7 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   
   mapping = malloc(sizeof(struct sr_nat_mapping));
   mapping->ip_int = ip_int;
-  /*mapping->ip_ext = ??*/
+  mapping->conns = NULL;
   mapping->aux_int = aux_int;
   mapping->last_updated = time(NULL);
   mapping->type = type;
