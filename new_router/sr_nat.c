@@ -262,12 +262,12 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
            maps->aux_int == ntohs(tcp_header->tcp_src) &&
            maps->type == nat_mapping_tcp){
             con = maps->conns;
-            maps = NULL;
+            break;
         } else if(!internal &&  
                   maps->aux_ext == ntohs(tcp_header->tcp_dst) &&
                   maps->type == nat_mapping_tcp){
             con = maps->conns;
-            maps = NULL;
+            break;
         }
         maps = maps->next;
     }
@@ -275,11 +275,12 @@ struct sr_nat_connection *sr_nat_update_connection(struct sr_nat *nat,
     while (con != NULL){
        if(internal && con->conn_ip == ip_header->ip_dst){
           copy = con;
-          con = NULL;
+          break;
        } else if(!internal && con->conn_ip == ip_header->ip_src){
           copy = con;
-          con = NULL;
+          break;
        }
+       con = con->next;
     }
     
     if (maps!= NULL && copy == NULL && internal && tcp_header->syn){
