@@ -28,9 +28,9 @@ uint16_t sr_tcp_cksum(void * packet, unsigned int len){
    
    pseudo->ip_src = ip_header->ip_src;
    pseudo->ip_dst = ip_header->ip_dst;
-   pseudo->ip_p = ip_header->ip_p;
+   pseudo->ip_p = htons(6);/*ip_header->ip_p;*/
    pseudo->reserved = 0;
-   pseudo->len = len-SIZE_IP;
+   pseudo->len = htons(len-SIZE_IP);
    
    memcpy(buf+SIZE_PTCP,packet,len-SIZE_IP);
    tcp_hdr->tcp_sum = 0;
