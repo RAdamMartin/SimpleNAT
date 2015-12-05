@@ -40,6 +40,25 @@ int sr_nat_init(struct sr_nat *nat,
   return success;
 }
 
+struct sr_nat_mapping *copy_map(struct sr_nat_mapping * map){
+   struct sr_nat_mapping *copy = malloc(sizeof(struct sr_nat_mapping));
+   if (map->conns != NULL){
+      struct sr_nat_connection *new_con = malloc(sizeof(struct sr_nat_connection));
+      memcpy(new_con,map->conns,sizeof(struct sr_nat_connection));
+      copy->conns = new_con;
+      
+      struct sr_nat_connection *prev_con = new_con;    
+      struct sr_nat_connection *con;
+      for (con = map->conns; con != NULL; con = con->next) {
+          new_con = malloc(sizeof(struct sr_nat_connection));
+          memcpy(new_con,con,sizeof(struct sr_nat_connection));
+          prev_con->next = new_con;
+          prev_con = new_con;
+      }
+   }
+   
+   return copy;
+}
 
 int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
 
@@ -47,16 +66,11 @@ int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
 
   /* free nat memory here */
   struct sr_nat_mapping *maps = nat->mappings;
-  struct sr_nat_connection *conns = NULL;
+  struct sr_nat_mapping *prev = maps;
   while(maps != NULL){
-    conns = maps->conns;
-    while (conns != NULL) {
-      conns = conns->next;
-      free(maps->conns);
-      maps->conns = conns;
-    }
-    free(maps);
     maps = maps->next;
+    sr_free_mapping(prev);
+    prev = maps;
   }
 
   pthread_kill(nat->thread, SIGKILL);
@@ -84,7 +98,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
         } else {
           prev->next = maps->next;
         }
-        free(maps);
+        sr_free_mapping(maps);
       }/*TODO IP Timeouts*/
       
       prev = maps;
@@ -108,10 +122,8 @@ struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
   struct sr_nat_mapping *maps = nat->mappings;
   while(maps != NULL){
     if (maps->aux_ext == aux_ext && type == maps->type){
-      copy = malloc(sizeof(struct sr_nat_mapping));
-      memcpy(copy,maps,sizeof(struct sr_nat_mapping));
       maps->last_updated = time(NULL);
-      return copy;
+      return copy_map(maps);
     }
     maps = maps->next;
   }
@@ -132,10 +144,8 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
   struct sr_nat_mapping *maps = nat->mappings;
   while(maps != NULL){
     if (maps->ip_int == ip_int && maps->aux_int == aux_int && type == maps->type){
-      copy = malloc(sizeof(struct sr_nat_mapping));
-      memcpy(copy,maps,sizeof(struct sr_nat_mapping));
       maps->last_updated = time(NULL);
-      return copy;
+      return copy_map(maps);
     }
     maps = maps->next;
   }
@@ -185,4 +195,14 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 
   pthread_mutex_unlock(&(nat->lock));
   return ret_map;
+}
+
+void * sr_free_mapping(struct sr_nat_mapping * map){
+   struct sr_nat_connection *con = map->conns;
+   for (con = map->conns; con != NULL; con = con->next) {
+      free(con);
+   }
+   
+   free(map);
+   return NULL;
 }

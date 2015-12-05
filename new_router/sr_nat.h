@@ -14,18 +14,19 @@ typedef enum {
 
 struct sr_nat_connection {
   /* add TCP connection state data members here */
+  uint32_t conn_ip;
   uint8_t state;
-#define LISTEN 0
-#define SYN_SENT 1
-#define SYN_REC 2
-#define ESTAB 3
-#define FIN_W1 4
-#define FIN_W2 5
-#define CLOSE_W 6
-#define CLOSING 7
-#define LAST_ACK 8
-#define TIME_W 9
-#define CLOSED 10
+#define LISTEN 1
+#define SYN_SENT 2
+#define SYN_REC 3
+#define ESTAB 4
+#define FIN_W1 5
+#define FIN_W2 6
+#define CLOSE_W 7
+#define CLOSING 8
+#define LAST_ACK 9
+#define TIME_W 10
+#define CLOSED 0
   uint8_t ext_flags;
   uint8_t int_flags;
   struct sr_nat_connection *next;
@@ -82,5 +83,6 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
 struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type );
 
+void * sr_free_mapping(struct sr_nat_mapping * map);
 
 #endif
