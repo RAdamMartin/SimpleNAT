@@ -43,7 +43,7 @@ int sr_nat_init(struct sr_nat *nat,
 struct sr_nat_mapping *copy_map(struct sr_nat_mapping * map){
    struct sr_nat_mapping *copy = malloc(sizeof(struct sr_nat_mapping));
    memcpy(copy,map,sizeof(struct sr_nat_mapping));
-   /*if (map->conns != NULL){
+   if (map->conns != NULL){
       struct sr_nat_connection *new_con = malloc(sizeof(struct sr_nat_connection));
       memcpy(new_con,map->conns,sizeof(struct sr_nat_connection));
       copy->conns = new_con;
@@ -57,7 +57,8 @@ struct sr_nat_mapping *copy_map(struct sr_nat_mapping * map){
           prev_con->next = new_con;
           prev_con = new_con;
       }
-   }*/
+   }
+   
    return copy;
 }
 
@@ -202,12 +203,12 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 }
 
 void * sr_free_mapping(struct sr_nat_mapping * map){
-  /* if (map->conns != NULL){
+   if (map->conns != NULL){
       struct sr_nat_connection *con = map->conns;
       for (con = map->conns; con != NULL; con = con->next) {
           free(con);
       }
-   }*/
+   }
    
    free(map);
    return NULL;
